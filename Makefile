@@ -377,6 +377,68 @@ setup-claude-skills:
 	fi; \
 	echo "✅ Claude Code skills ready in $$DEST (internal=$$created external=$$external)"
 
+setup-opencode-skills:
+	@set -e; \
+	INTERNAL_SRC=".github/skills"; \
+	EXTERNAL_SRC=".github/skills-external"; \
+	DEST=".opencode/skills"; \
+	echo "🧩 Generating OpenCode native skills..."; \
+	mkdir -p "$$DEST"; \
+	find "$$DEST" -mindepth 1 -maxdepth 1 -type l -delete 2>/dev/null || true; \
+	find "$$DEST" -mindepth 2 -maxdepth 2 -type l -delete 2>/dev/null || true; \
+	created=0; \
+	for skill_file in "$$INTERNAL_SRC"/*.md; do \
+		[ -f "$$skill_file" ] || continue; \
+		skill_name="$$(basename "$$skill_file" .md)"; \
+		[ "$$skill_name" != "README" ] || continue; \
+		skill_dest="$$DEST/$$skill_name"; \
+		target="$$skill_dest/SKILL.md"; \
+		mkdir -p "$$skill_dest"; \
+		if [ -e "$$target" ] && [ ! -L "$$target" ]; then \
+			echo "❌ Refusing to overwrite non-symlink $$target"; \
+			exit 1; \
+		fi; \
+		find "$$skill_dest" -mindepth 1 -maxdepth 1 -type l -delete 2>/dev/null || true; \
+		ln -sfn "../../../$$skill_file" "$$target"; \
+		echo "✅ Linked internal $$skill_name"; \
+		created=$$((created + 1)); \
+	done; \
+	external=0; \
+	if [ -d "$$EXTERNAL_SRC" ]; then \
+		for skill_dir in "$$EXTERNAL_SRC"/*; do \
+			[ -d "$$skill_dir" ] || continue; \
+			skill_name="$$(basename "$$skill_dir")"; \
+			if [ -f "$$INTERNAL_SRC/$$skill_name.md" ]; then \
+				echo "ℹ️  Skipping external $$skill_name because an internal skill has precedence"; \
+				continue; \
+			fi; \
+			if [ ! -f "$$skill_dir/SKILL.md" ]; then \
+				echo "⚠️  Skipping external $$skill_name (missing SKILL.md)"; \
+				continue; \
+			fi; \
+			skill_dest="$$DEST/$$skill_name"; \
+			if [ -e "$$skill_dest" ] && [ ! -d "$$skill_dest" ]; then \
+				echo "❌ Refusing to overwrite non-directory $$skill_dest"; \
+				exit 1; \
+			fi; \
+			mkdir -p "$$skill_dest"; \
+			find "$$skill_dest" -mindepth 1 -maxdepth 1 -type l -delete 2>/dev/null || true; \
+			for item in "$$skill_dir"/*; do \
+				[ -e "$$item" ] || continue; \
+				item_name="$$(basename "$$item")"; \
+				target="$$skill_dest/$$item_name"; \
+				if [ -e "$$target" ] && [ ! -L "$$target" ]; then \
+					echo "❌ Refusing to overwrite non-symlink $$target"; \
+					exit 1; \
+				fi; \
+				ln -sfn "../../../$$item" "$$target"; \
+			done; \
+			echo "✅ Linked external $$skill_name"; \
+			external=$$((external + 1)); \
+		done; \
+	fi; \
+	echo "✅ OpenCode skills ready in $$DEST (internal=$$created external=$$external)"
+
 setup-antigravity-skills:
 	@set -e; \
 	INTERNAL_SRC=".github/skills"; \
@@ -534,17 +596,19 @@ sync-skills:
 	echo "✅ Legacy installer artifacts removed (.agent/skills)"; \
 	$(MAKE) setup-claude-skills; \
 	$(MAKE) setup-antigravity-skills; \
-	echo "✅ Sync complete. Governed external skills are synced and native Claude/Antigravity adapters are refreshed."
+	$(MAKE) setup-opencode-skills; \
+	echo "✅ Sync complete. Governed external skills are synced and native Claude/Antigravity/OpenCode adapters are refreshed."
 
 # Remove all external skills and related metadata to reset template state
 purge-external-skills:
 	@set -e; \
 	echo "🧨 Purging external skills from repository..."; \
-	rm -rf .github/skills-external .agents/skills .agent/skills; \
+	rm -rf .github/skills-external .agents/skills .agent/skills .opencode/skills; \
 	rm -f skills-lock.json; \
 	mkdir -p .github/skills-external; \
 	$(MAKE) setup-claude-skills; \
 	$(MAKE) setup-antigravity-skills; \
+	$(MAKE) setup-opencode-skills; \
 	echo "✅ External skills purged (.github/skills-external reset, skills-lock.json removed, native adapters refreshed)"
 
 # Show help information about available commands
@@ -594,6 +658,7 @@ help:
 	@echo "  make template-sync-rebase Rebase current branch onto template branch"
 	@echo "  make setup-claude-skills Generate .claude/skills native symlinks from governed skills"
 	@echo "  make setup-antigravity-skills Generate .agents/skills native mirror from governed skills"
+	@echo "  make setup-opencode-skills Generate .opencode/skills native symlinks from governed skills"
 	@echo "  make sync-skills         Sync external skills to .github/skills-external and refresh native adapters"
 	@echo "  make purge-external-skills Purge all external skills and reset metadata"
 	@echo "  make clean               Clean cache and generated files"
@@ -612,4 +677,4 @@ clean:
 .DEFAULT_GOAL := help
 
 # Declare phony targets
-.PHONY: install setup-hooks run-dev run-api run-question run-interactive build-api run-api-docker stop-docker build-fresh clean help generate-requirements run-batch-test run-batch-test-custom test test-unit format lint lint-fast fix ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills sync-skills purge-external-skills
+.PHONY: install setup-hooks run-dev run-api run-question run-interactive build-api run-api-docker stop-docker build-fresh clean help generate-requirements run-batch-test run-batch-test-custom test test-unit format lint lint-fast fix ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-skills purge-external-skills

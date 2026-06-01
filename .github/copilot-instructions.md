@@ -19,7 +19,7 @@ Internal governed skills are the source of truth:
 
 Prefer internal curated skills when both define overlapping capabilities.
 
-Claude Code has a generated native view at `.claude/skills/`, and Antigravity has a generated native view at `.agents/skills/`. Both are refreshed with `make sync-skills`; Antigravity can also be refreshed with `make setup-antigravity-skills`. Copilot should continue to use `.github/skills/` and `.github/skills-external/` as inline instruction references.
+Claude Code has a generated native view at `.claude/skills/`, Antigravity has a generated native view at `.agents/skills/`, and OpenCode has a generated native view at `.opencode/skills/`. All three are refreshed with `make sync-skills`; each can also be refreshed individually with `make setup-claude-skills`, `make setup-antigravity-skills`, or `make setup-opencode-skills`. Copilot should continue to use `.github/skills/` and `.github/skills-external/` as inline instruction references.
 
 Core internal skills:
 

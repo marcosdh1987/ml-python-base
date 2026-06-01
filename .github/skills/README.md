@@ -12,15 +12,25 @@ Each internal skill file must include YAML frontmatter with:
 - Internal curated skills: `.github/skills/`
 - External synced skills: `.github/skills-external/`
 - Claude Code native generated links: `.claude/skills/`
+- Antigravity native generated copies: `.agents/skills/`
+- OpenCode native generated links: `.opencode/skills/`
 
 Precedence rule:
 
 - If a skill exists in both places, prefer `.github/skills/`.
 
-Refresh Claude Code native links after internal or external skill changes:
+Refresh all native adapter views after internal or external skill changes:
+
+```bash
+make sync-skills
+```
+
+Or refresh individually:
 
 ```bash
 make setup-claude-skills
+make setup-antigravity-skills
+make setup-opencode-skills
 ```
 
 ## Available Skills
