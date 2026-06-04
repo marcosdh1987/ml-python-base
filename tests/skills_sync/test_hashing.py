@@ -12,6 +12,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+
 from ml_python_base.skills_sync.hashing import folder_hash
 from ml_python_base.skills_sync.manifest import read_manifest
 
@@ -31,8 +32,13 @@ _SHELL_PIPELINE = (
 
 
 def _skill_dirs(repo_root: Path) -> list[Path]:
+    # Mirror the engine's discovery contract: a directory is a skill only when
+    # it carries a SKILL.md. Runtimes (e.g. Antigravity) may leave behind empty
+    # stub dirs that are not real skills and never reach the manifest.
     base = repo_root / ".agents/skills"
-    return sorted(d for d in base.iterdir() if d.is_dir())
+    return sorted(
+        d for d in base.iterdir() if d.is_dir() and (d / "SKILL.md").is_file()
+    )
 
 
 def test_folder_hash_matches_committed_manifest(repo_root: Path) -> None:

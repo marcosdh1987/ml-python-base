@@ -693,7 +693,6 @@ dependencies = [
     { name = "ipykernel" },
     { name = "nbstripout" },
     { name = "pandas" },
-    { name = "ruff" },
 ]
 
 [package.dev-dependencies]
@@ -704,6 +703,7 @@ dev = [
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
@@ -711,7 +711,6 @@ requires-dist = [
     { name = "ipykernel" },
     { name = "nbstripout", specifier = ">=0.7.0" },
     { name = "pandas" },
-    { name = "ruff" },
 ]
 
 [package.metadata.requires-dev]
@@ -722,6 +721,7 @@ dev = [
     { name = "pre-commit", specifier = ">=3.8.0" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "ruff", specifier = "==0.14.10" },
 ]
 
 [[package]]

@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "pandas",
-    "ruff",
     "nbstripout>=0.7.0",
     "ipykernel",
 ]
@@ -81,8 +80,10 @@ unfixable = []
 "src/ml_python_base/skills_sync/cli.py" = ["T201"]
 
 [tool.ruff.lint.isort]
-# Configuración compatible con Black
-known-first-party = ["src"]
+# Configuración compatible con Black.
+# The package is imported as `ml_python_base` (src-layout), so the import
+# name — not the directory — is what isort must recognize as first-party.
+known-first-party = ["ml_python_base"]
 combine-as-imports = true
 force-wrap-aliases = true
 
@@ -154,6 +155,9 @@ dev = [
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "mypy>=1.11",
+    # Pinned exactly to the ruff-pre-commit `rev` in .pre-commit-config.yaml.
+    # Both must move together or import sorting will ping-pong between them.
+    "ruff==0.14.10",
     # Tooling for the skills sync engine (src/ml_python_base/skills_sync).
     # Kept in the dev group so it never bloats the product wheel.
     "jinja2>=3.1",
