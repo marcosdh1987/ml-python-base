@@ -8,8 +8,11 @@ repos:
       - id: check-added-large-files
         args: ['--maxkb=10000']
 
+  # Keep this rev in lockstep with the ruff version in the dev dependency group
+  # (pyproject `[dependency-groups].dev`). A mismatch makes `make fix` and the
+  # pre-commit hook disagree on import order and fight each other on every commit.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.0
+    rev: v0.14.10
     hooks:
       - id: ruff
         args: [ --fix ]

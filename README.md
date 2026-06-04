@@ -216,7 +216,6 @@ Adapters:
 - Copilot entrypoint: `.github/copilot-instructions.md`
 - Antigravity workspace rules: `.agents/rules/`
 - Antigravity native skills: `.agents/skills/` generated from `.github/skills/` and `.github/skills-external/`
-- Antigravity hooks: `.agents/hooks.json`
 
 Documentation template:
 
@@ -295,19 +294,6 @@ make sync-skills
 This syncs complete skill directories to `.github/skills-external/`, refreshes `skills-lock.json`, removes installer temp folders, and refreshes `.claude/skills`. Run `make setup-claude-skills` separately when internal governed skills change and Claude Code needs its native links refreshed.
 
 After sync, the repo also regenerates `.agents/skills/` so Antigravity can discover the governed internal and synced external skills natively. The generated Antigravity mirror writes a hidden manifest to avoid re-importing generated skills on the next `make sync-skills` run.
-
-### Antigravity hooks
-
-The template also ships with workspace-local Antigravity hooks in `.agents/hooks.json`.
-
-These hooks currently:
-
-- block destructive Git reset/clean commands
-- require confirmation for direct `pip` commands
-- nudge direct `pytest` runs toward `make test` or `make test-unit`
-- inject a one-time session reminder to follow governance, `make`, `uv`, and `docs/` update expectations
-
-See `docs/development-hooks.md` for details.
 
 ### Purge all external skills (reset mode)
 
