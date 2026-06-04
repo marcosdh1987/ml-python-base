@@ -40,11 +40,12 @@ jobs:
             fi
           fi
 
-      - name: Run formatter
-        run: make format
+      # CI verifies; it never mutates the tree. Run `make fix` / `make format`
+      # locally before pushing. `make check` covers format --check, ruff, bandit,
+      # mypy, and tests; `make check-sync` fails if generated skill artifacts or
+      # adapter skill regions are stale relative to the governed sources.
+      - name: Read-only quality gate
+        run: make check
 
-      - name: Run auto-fixes
-        run: make fix
-
-      - name: Run tests
-        run: make test
+      - name: Skill-sync drift gate
+        run: make check-sync

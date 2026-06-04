@@ -27,6 +27,9 @@ TEMPLATE_REMOTE ?= template
 TEMPLATE_REPO ?= git@github.com:marcosdh1987/ml-python-base.git
 TEMPLATE_BRANCH ?= main
 
+# Declarative skills/adapters sync engine (replaces inline bash projection).
+SKILLS_SYNC = uv run python -m ml_python_base.skills_sync
+
 # =============================================================================
 # DEVELOPMENT ENVIRONMENT CONFIGURATION
 # =============================================================================
@@ -226,12 +229,29 @@ stop-docker:
 # USEFUL COMMANDS
 # =============================================================================
 
-# Full validation command (CI/CD pipeline)
+# Read-only quality gate (CI-safe: never mutates the working tree).
+# Mirrors `make fix`/`make format` checks without applying changes.
+check:
+	@echo "🔎 Running read-only quality gate..."
+	@if [ ! -d .venv ]; then make install; fi
+	@. $(VENV_DIR)/bin/activate && ruff format --check src/ tests/
+	@. $(VENV_DIR)/bin/activate && ruff check src/ tests/
+	@. $(VENV_DIR)/bin/activate && bandit -r src/ tests/ -ll -q
+	@. $(VENV_DIR)/bin/activate && mypy src/
+	@. $(VENV_DIR)/bin/activate && PYTHONPATH=${PWD}/src pytest tests/ --cov=src --cov-report=term-missing
+	@echo "✅ Quality gate passed (read-only)."
+
+# Static type checking only.
+typecheck:
+	@if [ ! -d .venv ]; then make install; fi
+	@. $(VENV_DIR)/bin/activate && mypy src/
+
+# Full CI pipeline: read-only quality gate + skill-sync drift gate.
+# CI must verify, not mutate — use `make fix`/`make format` locally instead.
 ci:
-	@echo "🚀 Running full CI pipeline..."
-	@make format
-	@make lint
-	@make test
+	@echo "🚀 Running full CI pipeline (read-only)..."
+	@make check
+	@make check-sync
 	@echo "✅ CI pipeline completed successfully!"
 
 # =============================================================================
@@ -314,302 +334,45 @@ template-sync-rebase:
 	}; \
 	echo "✅ Template rebase completed."
 
-# Generate Claude Code native skill layout from governed internal and external skills
+# =============================================================================
+# AI TOOL SKILLS SYNC
+# Declarative engine: src/ml_python_base/skills_sync, driven by
+# adapters/registry.toml. Add a new AI tool by adding ONE [[tool]] entry to
+# the registry (plus a template under adapters/templates/) -- no Makefile edit.
+# =============================================================================
+
+# Materialize Claude Code native skills (.claude/skills symlinks).
 setup-claude-skills:
-	@set -e; \
-	INTERNAL_SRC=".github/skills"; \
-	EXTERNAL_SRC=".github/skills-external"; \
-	DEST=".claude/skills"; \
-	echo "🧩 Generating Claude Code native skills..."; \
-	mkdir -p "$$DEST"; \
-	find "$$DEST" -mindepth 1 -maxdepth 1 -type l -delete 2>/dev/null || true; \
-	find "$$DEST" -mindepth 2 -maxdepth 2 -type l -delete 2>/dev/null || true; \
-	created=0; \
-	for skill_file in "$$INTERNAL_SRC"/*.md; do \
-		[ -f "$$skill_file" ] || continue; \
-		skill_name="$$(basename "$$skill_file" .md)"; \
-		[ "$$skill_name" != "README" ] || continue; \
-		skill_dest="$$DEST/$$skill_name"; \
-		target="$$skill_dest/SKILL.md"; \
-		mkdir -p "$$skill_dest"; \
-		if [ -e "$$target" ] && [ ! -L "$$target" ]; then \
-			echo "❌ Refusing to overwrite non-symlink $$target"; \
-			exit 1; \
-		fi; \
-		find "$$skill_dest" -mindepth 1 -maxdepth 1 -type l -delete 2>/dev/null || true; \
-		ln -sfn "../../../$$skill_file" "$$target"; \
-		echo "✅ Linked internal $$skill_name"; \
-		created=$$((created + 1)); \
-	done; \
-	external=0; \
-	if [ -d "$$EXTERNAL_SRC" ]; then \
-		for skill_dir in "$$EXTERNAL_SRC"/*; do \
-			[ -d "$$skill_dir" ] || continue; \
-			skill_name="$$(basename "$$skill_dir")"; \
-			if [ -f "$$INTERNAL_SRC/$$skill_name.md" ]; then \
-				echo "ℹ️  Skipping external $$skill_name because an internal skill has precedence"; \
-				continue; \
-			fi; \
-			if [ ! -f "$$skill_dir/SKILL.md" ]; then \
-				echo "⚠️  Skipping external $$skill_name (missing SKILL.md)"; \
-				continue; \
-			fi; \
-			skill_dest="$$DEST/$$skill_name"; \
-			if [ -e "$$skill_dest" ] && [ ! -d "$$skill_dest" ]; then \
-				echo "❌ Refusing to overwrite non-directory $$skill_dest"; \
-				exit 1; \
-			fi; \
-			mkdir -p "$$skill_dest"; \
-			find "$$skill_dest" -mindepth 1 -maxdepth 1 -type l -delete 2>/dev/null || true; \
-			for item in "$$skill_dir"/*; do \
-				[ -e "$$item" ] || continue; \
-				item_name="$$(basename "$$item")"; \
-				target="$$skill_dest/$$item_name"; \
-				if [ -e "$$target" ] && [ ! -L "$$target" ]; then \
-					echo "❌ Refusing to overwrite non-symlink $$target"; \
-					exit 1; \
-				fi; \
-				ln -sfn "../../../$$item" "$$target"; \
-			done; \
-			echo "✅ Linked external $$skill_name"; \
-			external=$$((external + 1)); \
-		done; \
-	fi; \
-	echo "✅ Claude Code skills ready in $$DEST (internal=$$created external=$$external)"
+	@$(SKILLS_SYNC) link --tool claude
 
+# Materialize OpenCode native skills (.opencode/skills symlinks).
 setup-opencode-skills:
-	@set -e; \
-	INTERNAL_SRC=".github/skills"; \
-	EXTERNAL_SRC=".github/skills-external"; \
-	DEST=".opencode/skills"; \
-	echo "🧩 Generating OpenCode native skills..."; \
-	mkdir -p "$$DEST"; \
-	find "$$DEST" -mindepth 1 -maxdepth 1 -type l -delete 2>/dev/null || true; \
-	find "$$DEST" -mindepth 2 -maxdepth 2 -type l -delete 2>/dev/null || true; \
-	created=0; \
-	for skill_file in "$$INTERNAL_SRC"/*.md; do \
-		[ -f "$$skill_file" ] || continue; \
-		skill_name="$$(basename "$$skill_file" .md)"; \
-		[ "$$skill_name" != "README" ] || continue; \
-		skill_dest="$$DEST/$$skill_name"; \
-		target="$$skill_dest/SKILL.md"; \
-		mkdir -p "$$skill_dest"; \
-		if [ -e "$$target" ] && [ ! -L "$$target" ]; then \
-			echo "❌ Refusing to overwrite non-symlink $$target"; \
-			exit 1; \
-		fi; \
-		find "$$skill_dest" -mindepth 1 -maxdepth 1 -type l -delete 2>/dev/null || true; \
-		ln -sfn "../../../$$skill_file" "$$target"; \
-		echo "✅ Linked internal $$skill_name"; \
-		created=$$((created + 1)); \
-	done; \
-	external=0; \
-	if [ -d "$$EXTERNAL_SRC" ]; then \
-		for skill_dir in "$$EXTERNAL_SRC"/*; do \
-			[ -d "$$skill_dir" ] || continue; \
-			skill_name="$$(basename "$$skill_dir")"; \
-			if [ -f "$$INTERNAL_SRC/$$skill_name.md" ]; then \
-				echo "ℹ️  Skipping external $$skill_name because an internal skill has precedence"; \
-				continue; \
-			fi; \
-			if [ ! -f "$$skill_dir/SKILL.md" ]; then \
-				echo "⚠️  Skipping external $$skill_name (missing SKILL.md)"; \
-				continue; \
-			fi; \
-			skill_dest="$$DEST/$$skill_name"; \
-			if [ -e "$$skill_dest" ] && [ ! -d "$$skill_dest" ]; then \
-				echo "❌ Refusing to overwrite non-directory $$skill_dest"; \
-				exit 1; \
-			fi; \
-			mkdir -p "$$skill_dest"; \
-			find "$$skill_dest" -mindepth 1 -maxdepth 1 -type l -delete 2>/dev/null || true; \
-			for item in "$$skill_dir"/*; do \
-				[ -e "$$item" ] || continue; \
-				item_name="$$(basename "$$item")"; \
-				target="$$skill_dest/$$item_name"; \
-				if [ -e "$$target" ] && [ ! -L "$$target" ]; then \
-					echo "❌ Refusing to overwrite non-symlink $$target"; \
-					exit 1; \
-				fi; \
-				ln -sfn "../../../$$item" "$$target"; \
-			done; \
-			echo "✅ Linked external $$skill_name"; \
-			external=$$((external + 1)); \
-		done; \
-	fi; \
-	echo "✅ OpenCode skills ready in $$DEST (internal=$$created external=$$external)"
+	@$(SKILLS_SYNC) link --tool opencode
 
+# Materialize Antigravity native skills (.agents/skills copies + manifest).
 setup-antigravity-skills:
-	@set -e; \
-	INTERNAL_SRC=".github/skills"; \
-	EXTERNAL_SRC=".github/skills-external"; \
-	DEST=".agents/skills"; \
-	MANIFEST="$$DEST/.generated-manifest.tsv"; \
-	echo "🧩 Generating Antigravity native skills..."; \
-	mkdir -p "$$DEST"; \
-	tmp_manifest="$$(mktemp)"; \
-	touch "$$tmp_manifest"; \
-	created=0; \
-	for skill_file in "$$INTERNAL_SRC"/*.md; do \
-		[ -f "$$skill_file" ] || continue; \
-		skill_name="$$(basename "$$skill_file" .md)"; \
-		[ "$$skill_name" != "README" ] || continue; \
-		skill_dest="$$DEST/$$skill_name"; \
-		if [ -e "$$skill_dest" ] && [ ! -d "$$skill_dest" ]; then \
-			echo "❌ Refusing to overwrite non-directory $$skill_dest"; \
-			rm -f "$$tmp_manifest"; \
-			exit 1; \
-		fi; \
-		rm -rf "$$skill_dest"; \
-		mkdir -p "$$skill_dest"; \
-		cp "$$skill_file" "$$skill_dest/SKILL.md"; \
-		folder_hash="$$(cd "$$skill_dest" && { find . -type f -print | LC_ALL=C sort | while IFS= read -r file; do printf '%s\n' "$$file"; shasum -a 256 "$$file"; done; } | shasum -a 256 | awk '{print $$1}')"; \
-		printf '%s\t%s\n' "$$skill_name" "$$folder_hash" >> "$$tmp_manifest"; \
-		echo "✅ Generated internal $$skill_name"; \
-		created=$$((created + 1)); \
-	done; \
-	external=0; \
-	if [ -d "$$EXTERNAL_SRC" ]; then \
-		for skill_dir in "$$EXTERNAL_SRC"/*; do \
-			[ -d "$$skill_dir" ] || continue; \
-			skill_name="$$(basename "$$skill_dir")"; \
-			if [ -f "$$INTERNAL_SRC/$$skill_name.md" ]; then \
-				echo "ℹ️  Skipping external $$skill_name because an internal skill has precedence"; \
-				continue; \
-			fi; \
-			if [ ! -f "$$skill_dir/SKILL.md" ]; then \
-				echo "⚠️  Skipping external $$skill_name (missing SKILL.md)"; \
-				continue; \
-			fi; \
-			skill_dest="$$DEST/$$skill_name"; \
-			if [ -e "$$skill_dest" ] && [ ! -d "$$skill_dest" ]; then \
-				echo "❌ Refusing to overwrite non-directory $$skill_dest"; \
-				rm -f "$$tmp_manifest"; \
-				exit 1; \
-			fi; \
-			rm -rf "$$skill_dest"; \
-			mkdir -p "$$skill_dest"; \
-			cp -R "$$skill_dir"/. "$$skill_dest"/; \
-			folder_hash="$$(cd "$$skill_dest" && { find . -type f -print | LC_ALL=C sort | while IFS= read -r file; do printf '%s\n' "$$file"; shasum -a 256 "$$file"; done; } | shasum -a 256 | awk '{print $$1}')"; \
-			printf '%s\t%s\n' "$$skill_name" "$$folder_hash" >> "$$tmp_manifest"; \
-			echo "✅ Generated external $$skill_name"; \
-			external=$$((external + 1)); \
-		done; \
-	fi; \
-	if [ -f "$$MANIFEST" ]; then \
-		while IFS=$$'\t' read -r old_skill _; do \
-			[ -n "$$old_skill" ] || continue; \
-			if ! grep -Fq "$$old_skill" "$$tmp_manifest"; then \
-				rm -rf "$$DEST/$$old_skill"; \
-				echo "🧹 Removed stale generated $$old_skill"; \
-			fi; \
-		done < "$$MANIFEST"; \
-	fi; \
-	mv "$$tmp_manifest" "$$MANIFEST"; \
-	echo "✅ Antigravity skills ready in $$DEST (internal=$$created external=$$external)"
+	@$(SKILLS_SYNC) link --tool antigravity
 
-# Sync external skills installed ad-hoc into repository-governed folder
+# Project governed agents (.github/agents) into each tool's native agent format.
+sync-agents:
+	@$(SKILLS_SYNC) agents
+
+# Regenerate the managed skill region inside every adapter file.
+render-adapters:
+	@$(SKILLS_SYNC) render
+
+# Ingest ad-hoc external skills, refresh skills-lock.json, and rebuild every
+# native adapter view (Claude / OpenCode / Antigravity) + adapter skill regions.
 sync-skills:
-	@set -e; \
-	PRIMARY_SRC=".agents/skills"; \
-	FALLBACK_SRC=".agent/skills"; \
-	DEST=".github/skills-external"; \
-	ANTIGRAVITY_MANIFEST=".agents/skills/.generated-manifest.tsv"; \
-	LOCK_FILE="skills-lock.json"; \
-	TIMESTAMP="$$(date -u +"%Y-%m-%dT%H:%M:%SZ")"; \
-	found_any_source=0; \
-	synced=0; skipped=0; unchanged=0; \
-	processed_file="$$(mktemp)"; \
-	touch "$$processed_file"; \
-	mkdir -p "$$DEST"; \
-	for SRC in "$$PRIMARY_SRC" "$$FALLBACK_SRC"; do \
-		[ -d "$$SRC" ] || continue; \
-		found_any_source=1; \
-		echo "🔄 Scanning skills from $$SRC..."; \
-		for skill_dir in "$$SRC"/*; do \
-			[ -d "$$skill_dir" ] || continue; \
-			skill_name="$$(basename "$$skill_dir")"; \
-			if grep -Fxq "$$skill_name" "$$processed_file"; then \
-				continue; \
-			fi; \
-			skill_file="$$skill_dir/SKILL.md"; \
-			if [ ! -f "$$skill_file" ]; then \
-				echo "⚠️  Skipping $$skill_name (missing SKILL.md)"; \
-				skipped=$$((skipped + 1)); \
-				printf '%s\n' "$$skill_name" >> "$$processed_file"; \
-				continue; \
-			fi; \
-			folder_hash="$$(cd "$$skill_dir" && { find . -type f -print | LC_ALL=C sort | while IFS= read -r file; do printf '%s\n' "$$file"; shasum -a 256 "$$file"; done; } | shasum -a 256 | awk '{print $$1}')"; \
-			manifest_hash=""; \
-			if [ "$$SRC" = "$$PRIMARY_SRC" ] && [ -f "$$ANTIGRAVITY_MANIFEST" ]; then \
-				manifest_hash="$$(awk -F '\t' -v name="$$skill_name" '$$1 == name {print $$2}' "$$ANTIGRAVITY_MANIFEST")"; \
-			fi; \
-			if [ -n "$$manifest_hash" ] && [ "$$manifest_hash" = "$$folder_hash" ]; then \
-				echo "ℹ️  Skipping generated $$skill_name from $$SRC"; \
-				unchanged=$$((unchanged + 1)); \
-				printf '%s\n' "$$skill_name" >> "$$processed_file"; \
-				continue; \
-			fi; \
-			rm -rf "$$DEST/$$skill_name"; \
-			mkdir -p "$$DEST/$$skill_name"; \
-			cp -R "$$skill_dir"/. "$$DEST/$$skill_name"/; \
-			echo "✅ Synced $$skill_name"; \
-			synced=$$((synced + 1)); \
-			printf '%s\n' "$$skill_name" >> "$$processed_file"; \
-		done; \
-	done; \
-	rm -f "$$processed_file"; \
-	if [ $$found_any_source -eq 0 ]; then \
-		echo "ℹ️  No external skills source found (.agents/skills or .agent/skills)."; \
-	fi; \
-	echo "📦 Sync summary: synced=$$synced skipped=$$skipped generated_skipped=$$unchanged"; \
-	echo "✅ Governed external skills are available in $$DEST"; \
-	mkdir -p "$$DEST"; \
-	echo "🧾 Generating governed skills lock file ($$LOCK_FILE)..."; \
-	tmp_lock="$$(mktemp)"; \
-	printf '{\n  "version": 1,\n  "generatedAt": "%s",\n  "skills": {\n' "$$TIMESTAMP" > "$$tmp_lock"; \
-	first=1; \
-	for skill_dir in "$$DEST"/*; do \
-		[ -d "$$skill_dir" ] || continue; \
-		skill_name="$$(basename "$$skill_dir")"; \
-		skill_file="$$skill_dir/SKILL.md"; \
-		[ -f "$$skill_file" ] || continue; \
-		hash="$$(shasum -a 256 "$$skill_file" | awk '{print $$1}')"; \
-		if [ $$first -eq 0 ]; then \
-			printf ',\n' >> "$$tmp_lock"; \
-		fi; \
-		first=0; \
-		printf '    "%s": {\n' "$$skill_name" >> "$$tmp_lock"; \
-		printf '      "source": "synced-local",\n' >> "$$tmp_lock"; \
-		printf '      "sourceType": "directory",\n' >> "$$tmp_lock"; \
-		printf '      "path": "%s",\n' "$$skill_dir" >> "$$tmp_lock"; \
-		printf '      "skillFile": "%s",\n' "$$skill_file" >> "$$tmp_lock"; \
-		printf '      "computedHash": "%s",\n' "$$hash" >> "$$tmp_lock"; \
-		printf '      "syncedAt": "%s"\n' "$$TIMESTAMP" >> "$$tmp_lock"; \
-		printf '    }' >> "$$tmp_lock"; \
-	done; \
-	printf '\n  }\n}\n' >> "$$tmp_lock"; \
-	mv "$$tmp_lock" "$$LOCK_FILE"; \
-	echo "✅ Lock file updated at $$LOCK_FILE"; \
-	echo "🧹 Cleaning legacy installer artifacts..."; \
-	rm -rf .agent/skills; \
-	echo "✅ Legacy installer artifacts removed (.agent/skills)"; \
-	$(MAKE) setup-claude-skills; \
-	$(MAKE) setup-antigravity-skills; \
-	$(MAKE) setup-opencode-skills; \
-	echo "✅ Sync complete. Governed external skills are synced and native Claude/Antigravity/OpenCode adapters are refreshed."
+	@$(SKILLS_SYNC) sync
 
-# Remove all external skills and related metadata to reset template state
+# Fail if any generated skill artifact is stale (CI drift gate).
+check-sync:
+	@$(SKILLS_SYNC) check
+
+# Remove all external skills and reset native views to internal-only.
 purge-external-skills:
-	@set -e; \
-	echo "🧨 Purging external skills from repository..."; \
-	rm -rf .github/skills-external .agents/skills .agent/skills .opencode/skills; \
-	rm -f skills-lock.json; \
-	mkdir -p .github/skills-external; \
-	$(MAKE) setup-claude-skills; \
-	$(MAKE) setup-antigravity-skills; \
-	$(MAKE) setup-opencode-skills; \
-	echo "✅ External skills purged (.github/skills-external reset, skills-lock.json removed, native adapters refreshed)"
+	@$(SKILLS_SYNC) purge
 
 # Show help information about available commands
 help:
@@ -625,7 +388,9 @@ help:
 	@echo "  make lint                 Full quality analysis (ruff + bandit)"
 	@echo "  make lint-fast            Fast analysis with ruff only"
 	@echo "  make fix                  Automatically fix issues (ruff check + format)"
-	@echo "  make ci                   Full pipeline: format + lint + test"
+	@echo "  make check                Read-only quality gate (CI-safe: format+lint+bandit+mypy+tests)"
+	@echo "  make typecheck            Static type checking with mypy"
+	@echo "  make ci                   Full read-only pipeline: check + check-sync"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test                 Run all tests with coverage"
@@ -659,7 +424,9 @@ help:
 	@echo "  make setup-claude-skills Generate .claude/skills native symlinks from governed skills"
 	@echo "  make setup-antigravity-skills Generate .agents/skills native mirror from governed skills"
 	@echo "  make setup-opencode-skills Generate .opencode/skills native symlinks from governed skills"
+	@echo "  make render-adapters     Regenerate the managed skill region in every adapter file"
 	@echo "  make sync-skills         Sync external skills to .github/skills-external and refresh native adapters"
+	@echo "  make check-sync          Fail if generated skill artifacts are stale (CI drift gate)"
 	@echo "  make purge-external-skills Purge all external skills and reset metadata"
 	@echo "  make clean               Clean cache and generated files"
 	@echo ""
@@ -677,4 +444,4 @@ clean:
 .DEFAULT_GOAL := help
 
 # Declare phony targets
-.PHONY: install setup-hooks run-dev run-api run-question run-interactive build-api run-api-docker stop-docker build-fresh clean help generate-requirements run-batch-test run-batch-test-custom test test-unit format lint lint-fast fix ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-skills purge-external-skills
+.PHONY: install setup-hooks run-dev run-api run-question run-interactive build-api run-api-docker stop-docker build-fresh clean help generate-requirements run-batch-test run-batch-test-custom test test-unit format lint lint-fast fix fix-force check typecheck ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-agents render-adapters sync-skills check-sync purge-external-skills

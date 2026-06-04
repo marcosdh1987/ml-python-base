@@ -1,5 +1,24 @@
 # Skills Management
 
+## Engine overview
+
+Skill/adapter/agent projection is handled by a single declarative engine —
+`src/ml_python_base/skills_sync` — driven by the registry at
+`adapters/registry.toml`. **Adding a new AI tool is one `[[tool]]` entry** in that
+registry (plus a Jinja2 template under `adapters/templates/`); no Makefile edit is
+needed. The Makefile targets are thin wrappers:
+
+| Target | Engine command | Purpose |
+|---|---|---|
+| `make setup-claude-skills` | `link --tool claude` | Symlink native Claude skills |
+| `make setup-opencode-skills` | `link --tool opencode` | Symlink native OpenCode skills |
+| `make setup-antigravity-skills` | `link --tool antigravity` | Copy native Antigravity skills + manifest |
+| `make render-adapters` | `render` | Regenerate the managed skill region in each adapter |
+| `make sync-agents` | `agents` | Project governed agents into native formats |
+| `make sync-skills` | `sync` | ingest + link + agents + render (one-shot) |
+| `make check-sync` | `check` | Fail if any generated artifact is stale (CI gate) |
+| `make purge-external-skills` | `purge` | Reset external skills + native views |
+
 This project supports two skill sources:
 
 - Internal/governed skills: `.github/skills/`
@@ -62,8 +81,28 @@ What it does:
 5. Regenerates a governed `skills-lock.json` from synced skills (hash + timestamp)
 6. Cleans installer artifacts after sync:
    - removes `.agent/skills/`
-7. Refreshes `.claude/skills/` so Claude Code can discover internal and external skills natively
-8. Refreshes `.agents/skills/` so Antigravity can discover the same governed skills natively
+7. Refreshes `.claude/skills/`, `.opencode/skills/`, and `.agents/skills/` so Claude
+   Code, OpenCode, and Antigravity discover internal and external skills natively
+8. Regenerates the managed skill region inside every adapter file (`CLAUDE.md`,
+   `OPENCODE.md`, `AGENTS.md`, `.github/copilot-instructions.md`,
+   `.agents/rules/GEMINI.md`) so the skill lists never drift
+9. Projects governed agents (`.github/agents/`) into `.claude/agents/` and
+   `.opencode/agent/`
+
+## Adapter skill regions and the drift gate
+
+Each adapter file carries a machine-managed block between sentinels:
+
+```
+<!-- BEGIN GENERATED SKILLS (managed by skills_sync; do not edit) -->
+...generated skill list...
+<!-- END GENERATED SKILLS -->
+```
+
+Only that block is generated; the surrounding governance prose stays hand-written.
+`make check-sync` (run in CI) fails if any adapter region, native view, manifest,
+lock file, or projected agent is stale relative to the governed sources — so the
+lists can never silently drift. Fix drift with `make sync-skills`.
 
 ## Safety behavior
 
