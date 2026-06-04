@@ -38,6 +38,7 @@ extend-exclude = [
     "htmlcov",
 ]
 
+[tool.ruff.lint]
 # Reglas habilitadas (compatible con Black, Flake8, isort, pyupgrade, bugbear)
 select = [
     "E",      # pycodestyle errors
@@ -67,8 +68,7 @@ ignore = [
 fixable = ["ALL"]
 unfixable = []
 
-# Permitir imports no usados en __init__.py
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]
 "tests/**/*.py" = [
     "ARG001",
@@ -80,13 +80,13 @@ unfixable = []
 # The skills sync CLI legitimately prints user-facing progress to stdout.
 "src/ml_python_base/skills_sync/cli.py" = ["T201"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 # Configuración compatible con Black
 known-first-party = ["src"]
 combine-as-imports = true
 force-wrap-aliases = true
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 # Complejidad ciclomática máxima
 max-complexity = 10
 
