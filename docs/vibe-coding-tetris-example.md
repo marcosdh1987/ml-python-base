@@ -26,14 +26,13 @@ Native skills are discovered from `.claude/skills/` (symlinks refreshed with
 
 | Skill | Why |
 |---|---|
-| `plan_and_execute_feature` | New feature from scratch — requires scoped plan + phased execution |
-| `create_use_case` | Game loop, state machine, input handler are discrete application-layer use cases |
-| `execute_engineering_task` | Scoped implementation of each module within clean-architecture constraints |
+| `plan_and_execute_feature` | New feature from scratch — `mode: full` for the plan; `mode: execute_only` for each scoped module implementation |
+| `create_domain_contract` | Game loop, state machine, input handler are discrete application-layer use cases (`contract_type: use_case`) |
 | `generate_e2e_tests` | Keyboard-driven flow needs end-to-end test coverage (simulate keypress → assert state) |
 | `generate_implementation_docs` | CI docs-quality rule blocks any `src/` change without a matching `docs/` update |
 | `validate_module_structure` | Final review: verify domain/application/infra layers don't bleed into each other |
 
-`create_repository_interface` is skipped (no persistence). `generate_migration_plan` is skipped (greenfield).
+`create_domain_contract` with `contract_type: repository` is unused (no persistence). `generate_migration_plan` is skipped (greenfield).
 
 ### Agents involved (real sub-agent delegation)
 
@@ -92,7 +91,7 @@ docs/
 OpenCode reads `opencode.json` → `OPENCODE.md`. That file uses five explicit levels
 (governance → skills → automation → orchestration → agents/SDLC), so OpenCode
 processes them in declared order. Same three governance files load.
-Native skills in `.opencode/skills/`, agents in `.opencode/agent/`
+Native skills in `.opencode/skills/`, agents in `.opencode/agents/`
 (both refreshed with `make sync-skills` / `make sync-agents`).
 
 ### Skills activated
@@ -100,8 +99,10 @@ Identical set — same governed source. OpenCode reads
 `.opencode/skills/plan_and_execute_feature/SKILL.md` (symlinked from `.github/skills/`).
 
 ### Agents involved (real sub-agent delegation)
-Same six agents via `.opencode/agent/` (projected from `.github/agents/` by
-`make sync-agents`). OpenCode's delegation primitive maps to its own task tool.
+Same six agents via `.opencode/agents/` (projected from `.github/agents/` by
+`make sync-agents`), each carrying a `permission` map so tool access is governed
+(planner read-only, implementer may edit/run). OpenCode's delegation primitive maps
+to its own task tool.
 
 **Model tier difference (self-hosted path):** when the Claude token budget runs out,
 the tier → model mapping in `.github/portability.md` maps:
@@ -173,7 +174,7 @@ Native skills in `.agents/skills/` are **copied files** (not symlinks) plus
 
 ### Skills activated
 Same governed set. Antigravity reads `.agents/skills/plan_and_execute_feature/SKILL.md`.
-The `@`-style reference allows explicit skill injection (e.g. `@.agents/skills/execute_engineering_task/SKILL.md`).
+The `@`-style reference allows explicit skill injection (e.g. `@.agents/skills/plan_and_execute_feature/SKILL.md`).
 
 ### Agents involved — collapsed mode
 Antigravity has no native sub-agent delegation protocol. The `.github/agents/`
@@ -229,7 +230,7 @@ layer separation the plan phase would have established.
 |---|---|---|---|---|---|
 | **Bootstrap file** | `CLAUDE.md` | `opencode.json` → `OPENCODE.md` | `AGENTS.md` | `.agents/rules/GEMINI.md` (`always_on`) | `.github/copilot-instructions.md` |
 | **Skill discovery** | Symlinks in `.claude/skills/` | Symlinks in `.opencode/skills/` | Direct read from `.github/skills/` | Copies in `.agents/skills/` + manifest | Direct read from `.github/skills/` |
-| **Agent delegation** | Real sub-agents (`.claude/agents/`) via `Agent` tool | Real sub-agents (`.opencode/agent/`) | Collapsed inline | Collapsed inline | Collapsed inline |
+| **Agent delegation** | Real sub-agents (`.claude/agents/`) via `Agent` tool | Real sub-agents (`.opencode/agents/`) | Collapsed inline | Collapsed inline | Collapsed inline |
 | **Model tiers used** | planner=opus-4-8, executor=sonnet-4-6, fast=haiku-4-5 | Cloud default; self-hosted via `.github/portability.md` | Single model (GPT-4o/o1) | Single model (Gemini 2.x) | Single model (GPT-4o) |
 | **Governance auto-load** | Explicit instruction | Explicit + Level 5 structured | Explicit instruction | Guaranteed (`always_on`) | Explicit instruction |
 | **Phase gate enforcement** | System-enforced via orchestrator | System-enforced via orchestrator | Model-honor only | Model-honor only | Manual |

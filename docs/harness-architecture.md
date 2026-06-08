@@ -21,9 +21,10 @@ adapters/
 src/ml_python_base/skills_sync/   The projection engine (one place, tested)
 ```
 
-Generated, never hand-edited: `.claude/skills`, `.opencode/skills`,
-`.agents/skills` (+ manifest), `.claude/agents`, `.opencode/agent`, `skills-lock.json`,
-and the `<!-- BEGIN/END GENERATED SKILLS -->` region inside each adapter file.
+Generated, never hand-edited: `.claude/skills`, `.opencode/skills`, `.codex/skills`,
+`.agents/skills` (+ manifest), `.claude/agents`, `.opencode/agents`, `.codex/agents`,
+`skills-lock.json`, and the `<!-- BEGIN/END GENERATED SKILLS -->` region inside each
+adapter file.
 
 ## The engine
 

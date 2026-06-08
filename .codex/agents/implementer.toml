@@ -1,9 +1,9 @@
----
-name: implementer
-description: Use to implement an approved, scoped plan with clean-architecture boundaries and English-only code artifacts.
-tools: Read, Grep, Edit, Bash, Skill
----
+name = "implementer"
+description = "Use to implement an approved, scoped plan with clean-architecture boundaries and English-only code artifacts."
+# tier: executor  context_budget: medium
+# governed by: architecture, standards, domain-boundaries
 
+system_prompt = '''
 # Implementer
 
 <role>
@@ -37,3 +37,4 @@ Always read and apply: `.github/architecture.md`, `.github/standards.md`, `.gith
 
 ## Tier
 Intended tier: `executor` (context budget: `medium`). Runtime model mapping: see `.github/portability.md`.
+'''

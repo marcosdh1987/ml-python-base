@@ -26,14 +26,12 @@ Read the governed skills below directly from `.github/skills/` (internal) and `.
 
 **Internal skills:**
 
+- `create_domain_contract` — Use when defining a typed domain contract — an application use case (business flow) or a repository interface (persistence boundary) — with clean architecture boundaries.
 - `create_mle_agent_package` — Use when designing a reusable pip-installable MLE agent package with governed scaffolding, runtime adapters, and validation plans.
-- `create_repository_interface` — Use when defining repository interfaces that isolate persistence details from domain and application logic.
-- `create_use_case` — Use when creating an application use case with clean architecture boundaries, typed contracts, and explicit business flow.
-- `execute_engineering_task` — Use when implementing a feature, fixing a bug, or executing scoped engineering work through governed orchestration.
 - `generate_e2e_tests` — Use when generating end-to-end tests for critical user, API, CLI, or service flows.
 - `generate_implementation_docs` — Use when creating or updating implementation documentation for completed code or test changes.
 - `generate_migration_plan` — Use when planning low-risk code, data, or architecture migrations with validation and rollback steps.
-- `plan_and_execute_feature` — Use when delivering a feature through explicit planning, phased execution, validation, and governed handoff.
+- `plan_and_execute_feature` — Use when delivering a feature through explicit planning, phased execution, validation, and governed handoff — or when implementing/fixing already-scoped engineering work via the execute_only mode.
 - `refactor_to_clean_architecture` — Use when refactoring modules to align dependency direction, responsibilities, and boundaries with clean architecture.
 - `validate_module_structure` — Use when validating module placement, dependency direction, and structure against repository governance.
 

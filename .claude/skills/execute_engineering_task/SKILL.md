@@ -1,1 +1,0 @@
-../../../.github/skills/execute_engineering_task.md

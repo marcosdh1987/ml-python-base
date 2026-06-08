@@ -1,7 +1,13 @@
 ---
-name: implementer
 description: Use to implement an approved, scoped plan with clean-architecture boundaries and English-only code artifacts.
-tools: Read, Grep, Edit, Bash, Skill
+mode: subagent
+permission:
+  bash: allow
+  edit: allow
+  grep: allow
+  read: allow
+  task: deny
+  webfetch: deny
 ---
 
 # Implementer

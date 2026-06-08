@@ -29,7 +29,7 @@ def _opencode_tool() -> ToolSpec:
         id="opencode",
         display_name="OpenCode",
         link_strategy="symlink",
-        native_agents_dir=".opencode/agent",
+        native_agents_dir=".opencode/agents",
         agent_format="opencode",
     )
 
@@ -64,6 +64,26 @@ def test_render_opencode_uses_mode() -> None:
     out = render_agent(_opencode_tool(), agents["tester"])
     assert "mode: subagent" in out
     assert out.startswith("---\ndescription:")
+
+
+def test_render_opencode_permission_is_read_only_for_planner() -> None:
+    # planner declares allowed_tools [read, grep] -> edit/bash/task must be denied,
+    # so OpenCode genuinely cannot let it mutate the tree.
+    agents = {a.name: a for a in discover_agents(REPO_ROOT)}
+    out = render_agent(_opencode_tool(), agents["planner"])
+    assert "permission:" in out
+    assert "read: allow" in out
+    assert "grep: allow" in out
+    assert "edit: deny" in out
+    assert "bash: deny" in out
+
+
+def test_render_opencode_permission_allows_implementer_to_edit() -> None:
+    agents = {a.name: a for a in discover_agents(REPO_ROOT)}
+    out = render_agent(_opencode_tool(), agents["implementer"])
+    assert "edit: allow" in out
+    assert "bash: allow" in out
+    assert "task: deny" in out  # worker, not an orchestrator
 
 
 def test_projection_writes_and_prunes(tmp_path: Path) -> None:
