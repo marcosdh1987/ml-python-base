@@ -37,6 +37,16 @@ _CLAUDE_TOOLS = {
     "web": "WebFetch",
 }
 
+# Tier -> Claude model alias. Aliases (not pinned ids) so each agent always uses
+# "whatever opus/sonnet/haiku is current". This makes planning/review run on the
+# flagship model while execution runs on Sonnet to save tokens. The same tier
+# vocabulary maps to other runtimes in `.github/portability.md`.
+_CLAUDE_TIER_MODEL = {
+    "planner": "opus",
+    "executor": "sonnet",
+    "fast": "haiku",
+}
+
 # OpenCode governs tool access via a `permission` map (`tools` is deprecated). We
 # emit an explicit allow/deny for each controlled key so a read-only agent (e.g.
 # planner) genuinely cannot edit or run shell. Agnostic vocab -> OpenCode key.
@@ -137,6 +147,9 @@ def _render_claude(agent: Agent) -> str:
         f"name: {agent.name}",
         f"description: {agent.description}",
     ]
+    model = _CLAUDE_TIER_MODEL.get(agent.tier)
+    if model:
+        front.append(f"model: {model}")
     if tools:
         front.append(f"tools: {', '.join(tools)}")
     front.append("---")

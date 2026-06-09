@@ -1,6 +1,7 @@
 ---
 name: reviewer
 description: Use to review a diff for correctness, boundary violations, and governance compliance before finalizing.
+model: opus
 tools: Read, Grep, Bash, Skill
 ---
 

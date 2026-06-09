@@ -26,6 +26,7 @@ Read the governed skills below directly from `.github/skills/` (internal) and `.
 
 **Internal skills:**
 
+- `brainstorm_quick` — Use for fast, lightweight ideation at the start of a feature — diverge on a few options, weigh trade-offs, converge on a recommendation. For the full design-gate workflow use the external `brainstorming` skill instead.
 - `create_domain_contract` — Use when defining a typed domain contract — an application use case (business flow) or a repository interface (persistence boundary) — with clean architecture boundaries.
 - `create_mle_agent_package` — Use when designing a reusable pip-installable MLE agent package with governed scaffolding, runtime adapters, and validation plans.
 - `generate_e2e_tests` — Use when generating end-to-end tests for critical user, API, CLI, or service flows.
@@ -37,7 +38,16 @@ Read the governed skills below directly from `.github/skills/` (internal) and `.
 
 **External synced skills:**
 
+- `brainstorming` — You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.
+- `executing-plans` — Use when you have a written implementation plan to execute in a separate session with review checkpoints
+- `finishing-a-development-branch` — Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
+- `requesting-code-review` — Use when completing tasks, implementing major features, or before merging to verify work meets requirements
+- `subagent-driven-development` — Use when executing implementation plans with independent tasks in the current session
+- `test-driven-development` — Use when implementing any feature or bugfix, before writing implementation code
 - `ui-ux-pro-max` — UI/UX design intelligence for web and mobile. Includes 50+ styles, 161 color palettes, 57 font pairings, 161 product types, 99 UX guidelines, and 25 chart types across 10 stacks (React, Next.js, Vue, Svelte, SwiftUI, React Native, Flutter, Tailwind, shadcn/ui, and HTML/CSS). Actions: plan, build, create, design, implement, review, fix, improve, optimize, enhance, refactor, and check UI/UX code. Projects: website, landing page, dashboard, admin panel, e-commerce, SaaS, portfolio, blog, and mobile app. Elements: button, modal, navbar, sidebar, card, table, form, and chart. Styles: glassmorphism, claymorphism, minimalism, brutalism, neumorphism, bento grid, dark mode, responsive, skeuomorphism, and flat design. Topics: color systems, accessibility, animation, layout, typography, font pairing, spacing, interaction states, shadow, and gradient. Integrations: shadcn/ui MCP for component search and examples.
+- `using-git-worktrees` — Use when starting feature work that needs isolation from current workspace or before executing implementation plans - ensures an isolated workspace exists via native tools or git worktree fallback
+- `writing-clearly-and-concisely` — Apply Strunk's timeless writing rules to ANY prose humans will read—documentation, commit messages, error messages, explanations, reports, or UI text. Makes your writing clearer, stronger, and more professional.
+- `writing-plans` — Use when you have a spec or requirements for a multi-step task, before touching code
 
 Refresh this layout with `make sync-skills` (or `make check-sync` to verify it is current).
 <!-- END GENERATED SKILLS -->

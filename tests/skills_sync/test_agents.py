@@ -59,6 +59,15 @@ def test_render_claude_maps_tools_and_adds_skill() -> None:
     assert "Runtime model mapping: see `.github/portability.md`." in out
 
 
+def test_render_claude_assigns_model_by_tier() -> None:
+    # planner tier -> opus (flagship for planning/review); executor -> sonnet
+    # (cheaper execution); fast -> haiku. Aliases, not pinned ids.
+    agents = {a.name: a for a in discover_agents(REPO_ROOT)}
+    assert "model: opus" in render_agent(_claude_tool(), agents["planner"])
+    assert "model: sonnet" in render_agent(_claude_tool(), agents["implementer"])
+    assert "model: haiku" in render_agent(_claude_tool(), agents["documenter"])
+
+
 def test_render_opencode_uses_mode() -> None:
     agents = {a.name: a for a in discover_agents(REPO_ROOT)}
     out = render_agent(_opencode_tool(), agents["tester"])
