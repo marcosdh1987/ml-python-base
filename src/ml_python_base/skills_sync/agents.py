@@ -3,8 +3,9 @@
 Source of truth: ``.github/agents/*.md`` (frontmatter + system-prompt body).
 Projection targets (driven by the registry's ``agent_format``):
 
-- ``claude``   -> ``.claude/agents/<name>.md`` (Claude Code subagent).
-- ``opencode`` -> ``.opencode/agent/<name>.md`` (OpenCode markdown agent).
+- ``claude``   -> ``.claude/agents/<name>.md``    (Claude Code subagent, markdown).
+- ``opencode`` -> ``.opencode/agents/<name>.md``  (OpenCode markdown agent + permission).
+- ``codex``    -> ``.codex/agents/<name>.toml``   (Codex subagent, TOML).
 
 Agents reference a tier (planner/executor/fast), never a concrete model id, so the
 same definition is portable across runtimes. The tier -> model mapping per runtime
@@ -17,6 +18,7 @@ from pathlib import Path
 
 from ml_python_base.skills_sync.models import (
     AGENT_FORMAT_CLAUDE,
+    AGENT_FORMAT_CODEX,
     AGENT_FORMAT_OPENCODE,
     Agent,
     ToolSpec,
@@ -33,6 +35,28 @@ _CLAUDE_TOOLS = {
     "bash": "Bash",
     "task": "Agent",
     "web": "WebFetch",
+}
+
+# Tier -> Claude model alias. Aliases (not pinned ids) so each agent always uses
+# "whatever opus/sonnet/haiku is current". This makes planning/review run on the
+# flagship model while execution runs on Sonnet to save tokens. The same tier
+# vocabulary maps to other runtimes in `.github/portability.md`.
+_CLAUDE_TIER_MODEL = {
+    "planner": "opus",
+    "executor": "sonnet",
+    "fast": "haiku",
+}
+
+# OpenCode governs tool access via a `permission` map (`tools` is deprecated). We
+# emit an explicit allow/deny for each controlled key so a read-only agent (e.g.
+# planner) genuinely cannot edit or run shell. Agnostic vocab -> OpenCode key.
+_OPENCODE_PERM = {
+    "read": "read",
+    "grep": "grep",
+    "edit": "edit",
+    "bash": "bash",
+    "task": "task",
+    "web": "webfetch",
 }
 
 
@@ -99,11 +123,18 @@ def _as_list(value: str | None) -> tuple[str, ...]:
 # --- Projection --------------------------------------------------------------
 
 
+def _agent_ext(agent_format: str) -> str:
+    """Return the file extension used by each agent format."""
+    return ".toml" if agent_format == AGENT_FORMAT_CODEX else ".md"
+
+
 def render_agent(tool: ToolSpec, agent: Agent) -> str:
     if tool.agent_format == AGENT_FORMAT_CLAUDE:
         return _render_claude(agent)
     if tool.agent_format == AGENT_FORMAT_OPENCODE:
         return _render_opencode(agent)
+    if tool.agent_format == AGENT_FORMAT_CODEX:
+        return _render_codex(agent)
     raise ValueError(f"Unsupported agent_format: {tool.agent_format!r}")
 
 
@@ -116,6 +147,9 @@ def _render_claude(agent: Agent) -> str:
         f"name: {agent.name}",
         f"description: {agent.description}",
     ]
+    model = _CLAUDE_TIER_MODEL.get(agent.tier)
+    if model:
+        front.append(f"model: {model}")
     if tools:
         front.append(f"tools: {', '.join(tools)}")
     front.append("---")
@@ -127,9 +161,37 @@ def _render_opencode(agent: Agent) -> str:
         "---",
         f"description: {agent.description}",
         f"mode: {agent.mode}",
-        "---",
+        "permission:",
     ]
+    # allow the agent's declared tools, deny every other controlled key.
+    allowed = {_OPENCODE_PERM[t] for t in agent.allowed_tools if t in _OPENCODE_PERM}
+    for key in sorted(_OPENCODE_PERM.values()):
+        front.append(f"  {key}: {'allow' if key in allowed else 'deny'}")
+    front.append("---")
     return "\n".join(front) + "\n\n" + _body_with_footer(agent) + "\n"
+
+
+def _render_codex(agent: Agent) -> str:
+    """Render a Codex subagent as TOML (``~/.codex/agents/`` or ``.codex/agents/``).
+
+    The Codex TOML schema keeps the governed information (name, description,
+    system prompt) while omitting tool-name mapping — Codex manages its own
+    tool permissions separately at the workspace level.
+    """
+    # TOML multi-line strings use triple-double-quotes.  Escape any that appear
+    # in the body to avoid breaking the literal block.
+    safe_body = _body_with_footer(agent).replace('"""', "'''")
+    lines = [
+        f'name = "{agent.name}"',
+        f'description = "{agent.description}"',
+        f"# tier: {agent.tier}  context_budget: {agent.context_budget}",
+        f"# governed by: {', '.join(agent.governance)}",
+        "",
+        "system_prompt = '''",
+        safe_body,
+        "'''",
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def _body_with_footer(agent: Agent) -> str:
@@ -160,8 +222,9 @@ def expected_agent_files(
     if not tool.has_agent_view:
         return {}
     dest_root = root / tool.native_agents_dir
+    ext = _agent_ext(tool.agent_format)
     return {
-        dest_root / f"{agent.name}.md": render_agent(tool, agent) for agent in agents
+        dest_root / f"{agent.name}{ext}": render_agent(tool, agent) for agent in agents
     }
 
 
@@ -171,10 +234,12 @@ def project_agents(root: Path, tool: ToolSpec, agents: list[Agent]) -> int:
         return 0
     dest_root = root / tool.native_agents_dir
     dest_root.mkdir(parents=True, exist_ok=True)
-    desired = {f"{agent.name}.md" for agent in agents}
+    ext = _agent_ext(tool.agent_format)
+    desired = {f"{agent.name}{ext}" for agent in agents}
 
-    for child in dest_root.glob("*.md"):
-        if child.name not in desired:
+    # Clean up any stale files of the right extension (avoids cross-format leftovers).
+    for child in dest_root.iterdir():
+        if child.suffix == ext and child.name not in desired:
             child.unlink()
 
     for path, content in expected_agent_files(root, tool, agents).items():

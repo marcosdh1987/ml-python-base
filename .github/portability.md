@@ -1,9 +1,11 @@
-# Runtime Portability and Model Tiers (design)
+# Runtime Portability and Model Tiers
 
-> Status: **design + documentation only.** The tier tables and provider config
-> below are the intended wiring for falling back from Claude Code to self-hosted
-> models via OpenCode (Ollama / LM Studio). They are not yet activated in
-> `opencode.json`; activate them when you need the fallback.
+> Status: **Claude Code tier→model is LIVE.** The projector emits a `model:` alias
+> into each `.claude/agents/<name>.md` based on the agent's tier — so planning and
+> review run on the flagship model while execution runs on Sonnet to save tokens
+> (see table below). The **OpenCode self-hosted** side (Ollama / LM Studio provider
+> block) remains **design only**: not yet activated in `opencode.json`; wire it when
+> you need the fallback.
 
 ## Why tiers, not model ids
 
@@ -12,14 +14,18 @@ Agents (`.github/agents/`) and skills reference a **tier**
 then a one-table change: the same governed agent maps to `claude-opus` on Claude
 Code and to a self-hosted `qwen`/`llama` on OpenCode.
 
-| Tier       | Role in the SDLC                         | min context | Claude Code (today) | OpenCode self-hosted (intended) |
-|------------|------------------------------------------|-------------|---------------------|---------------------------------|
-| `planner`  | orchestrator, planner, reviewer          | large       | `claude-opus-4-8`   | `qwen2.5-coder:32b`             |
-| `executor` | implementer, tester                      | medium      | `claude-sonnet-4-6` | `qwen2.5-coder:14b`             |
-| `fast`     | documenter, quick edits                  | small       | `claude-haiku-4-5`  | `llama3.1:8b`                   |
+| Tier       | Role in the SDLC                         | min context | Claude Code (live alias) | OpenCode self-hosted (intended) |
+|------------|------------------------------------------|-------------|--------------------------|---------------------------------|
+| `planner`  | orchestrator, planner, reviewer          | large       | `opus`                   | `qwen2.5-coder:32b`             |
+| `executor` | implementer, tester                      | medium      | `sonnet`                 | `qwen2.5-coder:14b`             |
+| `fast`     | documenter, quick edits                  | small       | `haiku`                  | `llama3.1:8b`                   |
 
-The exact local models are placeholders — pick what your hardware runs. Keep the
-**tier names** stable; only the right-hand mapping changes per runtime.
+The Claude column uses **aliases** (`opus`/`sonnet`/`haiku`), not pinned ids, so each
+agent always resolves to whatever that tier's current model is — "el que esté
+disponible". The mapping lives in `src/ml_python_base/skills_sync/agents.py`
+(`_CLAUDE_TIER_MODEL`). The exact local models are placeholders — pick what your
+hardware runs. Keep the **tier names** stable; only the right-hand mapping changes
+per runtime.
 
 ## Intended `opencode.json` providers (not yet applied)
 

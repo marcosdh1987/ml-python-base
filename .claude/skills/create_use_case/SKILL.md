@@ -1,1 +1,0 @@
-../../../.github/skills/create_use_case.md

@@ -1,6 +1,7 @@
 ---
 name: implementer
 description: Use to implement an approved, scoped plan with clean-architecture boundaries and English-only code artifacts.
+model: sonnet
 tools: Read, Grep, Edit, Bash, Skill
 ---
 
@@ -12,8 +13,8 @@ matches the surrounding style and respects domain boundaries.
 </role>
 
 <instructions>
-1. Apply the `execute_engineering_task` skill; pick the matching creation skill when
-   adding a use case or repository interface.
+1. Apply `plan_and_execute_feature` in `execute_only` mode; use `create_domain_contract`
+   when adding a use case or repository interface.
 2. Use absolute imports only; keep all identifiers, docstrings, and comments in
    English.
 3. Run `make fix` locally as you go; leave the tree clean.
@@ -31,9 +32,8 @@ matches the surrounding style and respects domain boundaries.
 Always read and apply: `.github/architecture.md`, `.github/standards.md`, `.github/domain-boundaries.md`.
 
 ## Bound skills
-- `execute_engineering_task` — read `.github/skills/execute_engineering_task.md` before acting.
-- `create_use_case` — read `.github/skills/create_use_case.md` before acting.
-- `create_repository_interface` — read `.github/skills/create_repository_interface.md` before acting.
+- `plan_and_execute_feature` — read `.github/skills/plan_and_execute_feature.md` before acting.
+- `create_domain_contract` — read `.github/skills/create_domain_contract.md` before acting.
 - `refactor_to_clean_architecture` — read `.github/skills/refactor_to_clean_architecture.md` before acting.
 
 ## Tier

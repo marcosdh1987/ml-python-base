@@ -39,7 +39,7 @@ link_strategy = "symlink"
 needs_manifest = false
 adapter_file = "OPENCODE.md"
 adapter_template = "opencode.md.j2"
-native_agents_dir = ".opencode/agent"  # OpenCode native markdown agents
+native_agents_dir = ".opencode/agents"  # OpenCode native markdown agents (plural per docs)
 agent_format = "opencode"
 
 [[tool]]
@@ -56,11 +56,13 @@ reference_prefix = "@"               # GEMINI uses @.github/... reference syntax
 [[tool]]
 id = "codex"
 display_name = "Codex"
-native_skills_dir = ""               # no native view; reads governed sources
-link_strategy = "none"
+native_skills_dir = ".codex/skills"  # Codex @-mention skill picker reads from here
+link_strategy = "symlink"            # same mechanism as claude/opencode
 needs_manifest = false
 adapter_file = "AGENTS.md"
 adapter_template = "agents.md.j2"
+native_agents_dir = ".codex/agents"  # Codex subagent TOML files
+agent_format = "codex"               # emits .codex/agents/<name>.toml
 
 [[tool]]
 id = "copilot"

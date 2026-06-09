@@ -35,16 +35,16 @@ make setup-opencode-skills
 
 ## Available Skills
 
-- `create_use_case`
-- `create_repository_interface`
+- `brainstorm_quick`
+- `create_domain_contract`
 - `create_mle_agent_package`
 - `generate_e2e_tests`
 - `generate_implementation_docs`
 - `refactor_to_clean_architecture`
 - `validate_module_structure`
 - `generate_migration_plan`
-- `execute_engineering_task`
 - `plan_and_execute_feature`
+- `research_current_info`
 
 ## Governance Dependency
 

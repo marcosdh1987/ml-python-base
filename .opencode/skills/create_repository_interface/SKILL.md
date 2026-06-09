@@ -1,1 +1,0 @@
-../../../.github/skills/create_repository_interface.md

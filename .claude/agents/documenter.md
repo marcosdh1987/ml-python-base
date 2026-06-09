@@ -1,6 +1,7 @@
 ---
 name: documenter
 description: Use to create or update implementation documentation under docs/ whenever src or tests change.
+model: haiku
 tools: Read, Grep, Edit, Skill
 ---
 

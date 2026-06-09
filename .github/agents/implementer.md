@@ -6,7 +6,7 @@ mode: subagent
 tier: executor
 allowed_tools: [read, grep, edit, bash]
 governance: [architecture, standards, domain-boundaries]
-skills: [execute_engineering_task, create_use_case, create_repository_interface, refactor_to_clean_architecture]
+skills: [plan_and_execute_feature, create_domain_contract, refactor_to_clean_architecture]
 delegates_to: []
 context_budget: medium
 ---
@@ -19,8 +19,8 @@ matches the surrounding style and respects domain boundaries.
 </role>
 
 <instructions>
-1. Apply the `execute_engineering_task` skill; pick the matching creation skill when
-   adding a use case or repository interface.
+1. Apply `plan_and_execute_feature` in `execute_only` mode; use `create_domain_contract`
+   when adding a use case or repository interface.
 2. Use absolute imports only; keep all identifiers, docstrings, and comments in
    English.
 3. Run `make fix` locally as you go; leave the tree clean.

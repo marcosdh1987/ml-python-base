@@ -27,6 +27,7 @@ MODE_SUBAGENT = "subagent"
 # Native agent projection formats.
 AGENT_FORMAT_CLAUDE = "claude"
 AGENT_FORMAT_OPENCODE = "opencode"
+AGENT_FORMAT_CODEX = "codex"  # TOML, lives at .codex/agents/<name>.toml
 
 
 @dataclass(frozen=True)

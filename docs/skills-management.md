@@ -44,16 +44,16 @@ The generated Claude files are symlinks back to `.github/skills/*.md` and `.gith
 
 Default internal skills bundled by template:
 
-- `create_use_case`
-- `create_repository_interface`
+- `brainstorm_quick`
+- `create_domain_contract`
 - `create_mle_agent_package`
 - `generate_e2e_tests`
 - `generate_implementation_docs`
 - `refactor_to_clean_architecture`
 - `validate_module_structure`
 - `generate_migration_plan`
-- `execute_engineering_task`
 - `plan_and_execute_feature`
+- `research_current_info`
 
 ## Sync external skills to governed layout
 
@@ -86,8 +86,8 @@ What it does:
 8. Regenerates the managed skill region inside every adapter file (`CLAUDE.md`,
    `OPENCODE.md`, `AGENTS.md`, `.github/copilot-instructions.md`,
    `.agents/rules/GEMINI.md`) so the skill lists never drift
-9. Projects governed agents (`.github/agents/`) into `.claude/agents/` and
-   `.opencode/agent/`
+9. Projects governed agents (`.github/agents/`) into `.claude/agents/` (markdown),
+   `.opencode/agents/` (markdown + `permission` map), and `.codex/agents/` (TOML)
 
 ## Adapter skill regions and the drift gate
 
