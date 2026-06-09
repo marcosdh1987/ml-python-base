@@ -44,6 +44,7 @@ make setup-opencode-skills
 - `validate_module_structure`
 - `generate_migration_plan`
 - `plan_and_execute_feature`
+- `research_current_info`
 
 ## Governance Dependency
 

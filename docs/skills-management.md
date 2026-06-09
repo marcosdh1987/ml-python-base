@@ -44,6 +44,7 @@ The generated Claude files are symlinks back to `.github/skills/*.md` and `.gith
 
 Default internal skills bundled by template:
 
+- `brainstorm_quick`
 - `create_domain_contract`
 - `create_mle_agent_package`
 - `generate_e2e_tests`
@@ -52,6 +53,7 @@ Default internal skills bundled by template:
 - `validate_module_structure`
 - `generate_migration_plan`
 - `plan_and_execute_feature`
+- `research_current_info`
 
 ## Sync external skills to governed layout
 

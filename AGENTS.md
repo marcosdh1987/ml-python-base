@@ -23,6 +23,7 @@ The governed skills below are projected into `.codex/skills/`. Internal skills a
 - `generate_migration_plan` — Use when planning low-risk code, data, or architecture migrations with validation and rollback steps.
 - `plan_and_execute_feature` — Use when delivering a feature through explicit planning, phased execution, validation, and governed handoff — or when implementing/fixing already-scoped engineering work via the execute_only mode.
 - `refactor_to_clean_architecture` — Use when refactoring modules to align dependency direction, responsibilities, and boundaries with clean architecture.
+- `research_current_info` — Use when the user asks for up-to-date or current information, to confirm something is still accurate, or when a task depends on facts that may have changed since training (library versions, APIs, pricing, releases, news, current best practices). Runs a governed web search with a curated domain allow/deny policy and cited, recency-checked results.
 - `validate_module_structure` — Use when validating module placement, dependency direction, and structure against repository governance.
 
 **External synced skills:**
