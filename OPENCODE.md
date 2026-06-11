@@ -76,6 +76,13 @@ Use explicit orchestration for complex tasks:
 - Runtime/model portability for self-hosted fallback (Ollama / LM Studio) and the
   `planner`/`executor`/`fast` tier abstraction: `.github/portability.md`.
 
+## Models and Providers
+
+Provider/model config is env-driven in `opencode.json` (`{env:...}` interpolation):
+self-hosted `ollama` / `lmstudio` plus built-in `openai` and `opencode` (Zen). Set
+hosts and models in `.env` (see `.env.example`); launch with `make opencode` and
+verify endpoints with `make opencode-doctor`. Full guide: `.github/portability.md`.
+
 ## Runtime Rules
 
 - Interact in the same language as the user.

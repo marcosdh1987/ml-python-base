@@ -188,6 +188,28 @@ run-interactive:
 	@. $(VENV_DIR)/bin/activate && PYTHONPATH=${PWD}/src python main.py --interactive
 
 # =============================================================================
+# OPENCODE RUNTIME (self-hosted / cloud, configured via .env)
+# =============================================================================
+
+# Launch the opencode TUI with .env loaded so opencode.json {env:...} resolves.
+opencode:
+	@command -v opencode >/dev/null 2>&1 || { echo "❌ opencode not found. Install: brew install anomalyco/tap/opencode"; exit 1; }
+	@[ -f .env ] || echo "⚠️  no .env found — copy .env.example to .env and edit (or use 'opencode auth login' / the /models picker)."
+	@set -a; [ -f .env ] && . ./.env; set +a; opencode
+
+# Verify opencode is installed and the configured local endpoints are reachable.
+opencode-doctor:
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	if command -v opencode >/dev/null 2>&1; then echo "✅ opencode: $$(opencode --version 2>/dev/null || echo installed)"; \
+	else echo "❌ opencode not installed (brew install anomalyco/tap/opencode)"; fi; \
+	for pair in "Ollama=$$OLLAMA_BASE_URL" "LM_Studio=$$LMSTUDIO_BASE_URL"; do \
+	  name=$${pair%%=*}; url=$${pair#*=}; \
+	  if [ -z "$$url" ]; then echo "–  $$name: not configured in .env"; continue; fi; \
+	  if curl -fsS --max-time 4 "$$url/models" >/dev/null 2>&1; then echo "✅ $$name reachable: $$url"; \
+	  else echo "❌ $$name unreachable: $$url (is the host up and the server listening?)"; fi; \
+	done
+
+# =============================================================================
 # DOCKER BUILD AND DEPLOYMENT
 # =============================================================================
 
@@ -404,6 +426,10 @@ help:
 	@echo "  make run-question        Test with predefined medical question"
 	@echo "  make run-interactive     Start interactive CLI mode"
 	@echo ""
+	@echo "OpenCode (self-hosted / cloud, via .env):"
+	@echo "  make opencode            Launch opencode TUI with .env loaded"
+	@echo "  make opencode-doctor     Check opencode install + local endpoints"
+	@echo ""
 	@echo "Docker:"
 	@echo "  make build-api           Build API Docker image"
 	@echo "  make build-fresh         Build without cache"
@@ -444,4 +470,4 @@ clean:
 .DEFAULT_GOAL := help
 
 # Declare phony targets
-.PHONY: install setup-hooks run-dev run-api run-question run-interactive build-api run-api-docker stop-docker build-fresh clean help generate-requirements run-batch-test run-batch-test-custom test test-unit format lint lint-fast fix fix-force check typecheck ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-agents render-adapters sync-skills check-sync purge-external-skills
+.PHONY: install setup-hooks run-dev run-api run-question run-interactive opencode opencode-doctor build-api run-api-docker stop-docker build-fresh clean help generate-requirements run-batch-test run-batch-test-custom test test-unit format lint lint-fast fix fix-force check typecheck ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-agents render-adapters sync-skills check-sync purge-external-skills

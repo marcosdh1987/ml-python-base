@@ -1,11 +1,10 @@
 # Runtime Portability and Model Tiers
 
-> Status: **Claude Code tier→model is LIVE.** The projector emits a `model:` alias
-> into each `.claude/agents/<name>.md` based on the agent's tier — so planning and
-> review run on the flagship model while execution runs on Sonnet to save tokens
-> (see table below). The **OpenCode self-hosted** side (Ollama / LM Studio provider
-> block) remains **design only**: not yet activated in `opencode.json`; wire it when
-> you need the fallback.
+> Status: **Both runtimes are LIVE.** Claude Code emits a `model:` alias into each
+> `.claude/agents/<name>.md` by tier (planning/review on the flagship, execution on
+> Sonnet to save tokens). **OpenCode is operational too**: `opencode.json` ships
+> env-driven providers for Ollama / LM Studio (self-hosted) plus built-in OpenAI and
+> OpenCode Zen, configured entirely through `.env` — no IPs or keys are committed.
 
 ## Why tiers, not model ids
 
@@ -27,33 +26,38 @@ disponible". The mapping lives in `src/ml_python_base/skills_sync/agents.py`
 hardware runs. Keep the **tier names** stable; only the right-hand mapping changes
 per runtime.
 
-## Intended `opencode.json` providers (not yet applied)
+## OpenCode config (operational, env-driven)
 
-Ollama and LM Studio both expose an OpenAI-compatible API, so they slot in as
-custom providers. When activating the fallback, extend `opencode.json` along these
-lines (illustrative):
+`opencode.json` ships with the providers wired and **every host/model behind
+`{env:...}` interpolation**, so the template carries no IPs or keys — you set them
+in `.env` (gitignored). Providers:
 
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "instructions": "OPENCODE.md",
-  "provider": {
-    "ollama": {
-      "npm": "@ai-sdk/openai-compatible",
-      "options": { "baseURL": "http://localhost:11434/v1" },
-      "models": { "qwen2.5-coder:32b": {}, "qwen2.5-coder:14b": {}, "llama3.1:8b": {} }
-    },
-    "lmstudio": {
-      "npm": "@ai-sdk/openai-compatible",
-      "options": { "baseURL": "http://localhost:1234/v1" },
-      "models": { "local-model": {} }
-    }
-  }
-}
+- `ollama` / `lmstudio` — custom OpenAI-compatible providers; `baseURL` comes from
+  `OLLAMA_BASE_URL` / `LMSTUDIO_BASE_URL`.
+- `openai` and `opencode` (OpenCode Zen) — built-in; authenticate with
+  `opencode auth login` (keychain) or `OPENAI_API_KEY`.
+
+Tiering is two levels via `model` (main) + `small_model` (lightweight), both from
+`.env` (`OPENCODE_MODEL`, `OPENCODE_SMALL_MODEL`). A single local GPU rarely runs
+three large models at once, so per-agent 3-tier splitting is intentionally not
+forced here; switch the active model anytime with `/models` in the TUI.
+
+### Setup from the CLI
+
+```bash
+brew install anomalyco/tap/opencode   # recommended tap (most up to date)
+cp .env.example .env                  # then edit OLLAMA_BASE_URL / LMSTUDIO_BASE_URL / OPENCODE_MODEL
+make opencode-doctor                  # check install + that the endpoints answer
+make opencode                         # launch the TUI with .env loaded
 ```
 
-A future `make opencode-doctor` target should verify the endpoint is reachable and
-the referenced models are pulled before a session relies on them.
+Inside the TUI: `/connect` to add a cloud provider (OpenAI / Zen) and paste its key,
+`/models` to switch the active model. `make opencode` loads `.env` for you; for direct
+`opencode` use, load it yourself (`direnv`, or `set -a; . ./.env; set +a`) so the
+`{env:...}` values resolve.
+
+> LM Studio model ids: the placeholder `local-model` under `provider.lmstudio.models`
+> in `opencode.json` must match the id LM Studio serves (Developer/Server tab).
 
 ## Graceful degradation for small context windows
 
@@ -69,9 +73,13 @@ designed to survive this:
 - **Skill degradation.** Long skills can document a shorter "degraded mode" path
   for small-window runtimes.
 
-## Activation checklist (when you need the fallback)
+## Activation checklist
 
-1. Install and start Ollama or LM Studio; pull the models for each tier.
-2. Apply the provider block above to `opencode.json`; map agents' tiers to models.
-3. Add `make opencode-doctor` to verify endpoint + pulled models.
-4. Run a small task through OpenCode and confirm each SDLC gate still passes.
+1. Install and start Ollama / LM Studio on your GPU host(s); pull the models you set
+   in `.env` (`ollama pull qwen2.5-coder:32b`, or load a model in LM Studio).
+2. `cp .env.example .env` and set `OLLAMA_BASE_URL` / `LMSTUDIO_BASE_URL` /
+   `OPENCODE_MODEL` / `OPENCODE_SMALL_MODEL`. For LM Studio, also list its served
+   model id under `provider.lmstudio.models` in `opencode.json`.
+3. `make opencode-doctor` — confirms opencode is installed and each endpoint answers.
+4. `make opencode` — run a small task through OpenCode and confirm each SDLC gate
+   (`make check`) still passes on the local model.
