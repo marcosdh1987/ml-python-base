@@ -10,7 +10,7 @@ system, not by model goodwill.
 | # | Phase     | Owner agent   | Bound skill                     | Exit gate (must pass to advance)      |
 |---|-----------|---------------|---------------------------------|---------------------------------------|
 | 1 | plan      | `planner`     | `plan_and_execute_feature`      | Plan written, scoped, and reviewed    |
-| 2 | implement | `implementer` | `execute_engineering_task`      | `make fix` clean (local)              |
+| 2 | implement | `implementer` | `plan_and_execute_feature` (`execute_only` mode) | `make fix` clean (local) |
 | 3 | test      | `tester`      | `generate_e2e_tests`            | `make check` green                    |
 | 4 | document  | `documenter`  | `generate_implementation_docs`  | `docs/` updated (CI docs rule passes) |
 | 5 | review    | `reviewer`    | `validate_module_structure`     | `make check` + `make check-sync` green|

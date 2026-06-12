@@ -37,7 +37,8 @@ The governed skills below are projected into `@.agents/skills/`. Internal skills
 
 **Internal skills:**
 
-- `brainstorm_quick` — Use for fast, lightweight ideation at the start of a feature — diverge on a few options, weigh trade-offs, converge on a recommendation. For the full design-gate workflow use the external `brainstorming` skill instead.
+- `bootstrap_project` — Use when starting a new project from a fresh clone of this template — guides the rename via `make init`, environment setup, template-remote configuration, and the first green quality gate, in any supported AI tool.
+- `brainstorm_quick` — Use for fast ideation on a scoped feature when no written spec or formal approval is needed — diverge on options, weigh trade-offs, converge on a recommendation, then hand off to `plan_and_execute_feature`. For new features or design-impacting work that needs a written, user-approved spec, use the external `brainstorming` skill (full design gate) instead.
 - `create_domain_contract` — Use when defining a typed domain contract — an application use case (business flow) or a repository interface (persistence boundary) — with clean architecture boundaries.
 - `create_mle_agent_package` — Use when designing a reusable pip-installable MLE agent package with governed scaffolding, runtime adapters, and validation plans.
 - `generate_e2e_tests` — Use when generating end-to-end tests for critical user, API, CLI, or service flows.

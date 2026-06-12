@@ -16,7 +16,7 @@ mode: subagent                    # primary | subagent
 tier: executor                    # planner | executor | fast (NEVER a model id)
 allowed_tools: [read, grep, edit, bash, task]   # agnostic vocabulary
 governance: [architecture, standards, domain-boundaries]
-skills: [execute_engineering_task]              # bound governed skills
+skills: [plan_and_execute_feature]              # bound governed skills
 delegates_to: []                  # orchestrators list their workers
 context_budget: medium            # small | medium | large
 ---

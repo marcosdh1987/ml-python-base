@@ -1,6 +1,6 @@
 ---
 name: brainstorm_quick
-description: Use for fast, lightweight ideation at the start of a feature — diverge on a few options, weigh trade-offs, converge on a recommendation. For the full design-gate workflow use the external `brainstorming` skill instead.
+description: Use for fast ideation on a scoped feature when no written spec or formal approval is needed — diverge on options, weigh trade-offs, converge on a recommendation, then hand off to `plan_and_execute_feature`. For new features or design-impacting work that needs a written, user-approved spec, use the external `brainstorming` skill (full design gate) instead.
 ---
 
 # Skill: brainstorm_quick
@@ -11,6 +11,19 @@ Explore a problem space quickly before any plan or code exists. A lightweight,
 governance-aligned alternative to the heavier external `brainstorming` skill: no
 mandatory design document, no hard gate — just diverge, weigh, and converge so the
 `plan_and_execute_feature` skill can turn the chosen direction into an explicit plan.
+
+## When to use which ideation skill
+
+| Signal | Use `brainstorm_quick` (this skill) | Use external `brainstorming` |
+|---|---|---|
+| Scope | Scoped feature, bounded change, quick exploration | New feature or creative work with design impact |
+| Artifact | None persisted — recommendation in conversation | Written design spec committed under `docs/` |
+| Gate | No hard gate; user accepts the recommendation | Hard gate: user must approve the spec before any code |
+| Handoff | `plan_and_execute_feature` | `writing-plans` (then plan execution) |
+| Runtime needs | Any tool, text-only | Optional visual companion requires Node.js (text fallback exists) |
+
+When in doubt, start here; escalate to the external `brainstorming` skill if the
+discussion reveals design-impacting decisions that deserve a written, approved spec.
 
 ## Required Input
 

@@ -35,6 +35,7 @@ make setup-opencode-skills
 
 ## Available Skills
 
+- `bootstrap_project`
 - `brainstorm_quick`
 - `create_domain_contract`
 - `create_mle_agent_package`
