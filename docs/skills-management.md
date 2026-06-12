@@ -44,6 +44,7 @@ The generated Claude files are symlinks back to `.github/skills/*.md` and `.gith
 
 Default internal skills bundled by template:
 
+- `bootstrap_project`
 - `brainstorm_quick`
 - `create_domain_contract`
 - `create_mle_agent_package`
@@ -54,6 +55,31 @@ Default internal skills bundled by template:
 - `generate_migration_plan`
 - `plan_and_execute_feature`
 - `research_current_info`
+
+## Ideation routing: `brainstorm_quick` vs external `brainstorming`
+
+Two ideation skills coexist on purpose. Route between them explicitly:
+
+| Situation | Skill | Why |
+|---|---|---|
+| Scoped feature, quick exploration, no formal spec needed | `brainstorm_quick` (internal) | Lightweight: diverge → weigh → converge → hand off to `plan_and_execute_feature`. Nothing persisted. |
+| New feature, creative work, or design-impacting change | `brainstorming` (external) | Hard design gate: written spec under `docs/`, explicit user approval, then hand off to `writing-plans`. |
+
+Start with `brainstorm_quick` when unsure and escalate to `brainstorming` if
+design-impacting decisions emerge. The routing criteria also live in the
+`brainstorm_quick` skill itself ("When to use which ideation skill") so every AI
+tool sees them natively.
+
+Caveats of the external `brainstorming` skill (do **not** edit it in
+`.github/skills-external/` — changes are overwritten on the next sync):
+
+- Its optional **visual companion** runs a local Node.js server
+  (`scripts/` inside the skill). Node.js is not a repo dependency; the skill
+  falls back to text-only brainstorming when it is unavailable or declined.
+- It references sibling skills with the `superpowers:` namespace prefix
+  (e.g. `superpowers:writing-plans`). Not every tool resolves that prefix —
+  the same skills are available here without the prefix (`writing-plans`,
+  `executing-plans`, etc.).
 
 ## Sync external skills to governed layout
 

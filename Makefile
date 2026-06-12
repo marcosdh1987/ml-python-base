@@ -1,22 +1,21 @@
 # =============================================================================
-# This Makefile provides commands to configure, run, and work with
-# the specialized agent for medical consultation preparation using SBAR.
+# ML Python base template — commands to configure, develop, and govern
+# AI-assisted projects across Claude Code, OpenCode, Codex, Antigravity,
+# and GitHub Copilot.
 #
 # Main features:
 # - Virtual environment management with uv
-# - Linting and formatting tools for code quality
-# - Development and production server
-# - Interactive CLI and single question mode
-# - Batch testing against the API
+# - Linting, formatting, typing, and security gates (ruff/mypy/bandit/pytest)
+# - Governed skills/agents sync engine (single source: .github/)
+# - Template lifecycle: bootstrap new projects + sync from upstream template
 # - Docker containerization support
 #
 # Basic usage:
-#   make install          # Set up development environment
-#   make format           # Automatically format code
-#   make lint             # Check code quality
-#   make test             # Run tests
-#   make run-api          # Start API server
-#   make build-api        # Build API Docker image
+#   make init NAME=my_project  # Bootstrap a fresh clone as a new project
+#   make install               # Set up development environment
+#   make format                # Automatically format code
+#   make check                 # Read-only quality gate (CI-safe)
+#   make sync-skills           # Refresh native skill/agent views + adapters
 # =============================================================================
 
 export PYTHON_VERSION=3.11.9
@@ -96,8 +95,8 @@ setup-hooks:
 format:
 	@echo "🎨 Formatting code with ruff..."
 	@if [ ! -d .venv ]; then make install; fi
-	@. $(VENV_DIR)/bin/activate && ruff format src/ tests/
-	@. $(VENV_DIR)/bin/activate && ruff check --select I --fix src/ tests/
+	@. $(VENV_DIR)/bin/activate && ruff format src/ tests/ scripts/
+	@. $(VENV_DIR)/bin/activate && ruff check --select I --fix src/ tests/ scripts/
 	@echo "🧹 Cleaning notebook outputs..."
 	@. $(VENV_DIR)/bin/activate && nbstripout notebooks/*.ipynb 2>/dev/null || echo "⚠️  No notebooks found or nbstripout not installed"
 	@echo "✅ Code formatted and notebooks cleaned!"
@@ -107,25 +106,25 @@ lint:
 	@echo "🔍 Running code quality analysis..."
 	@if [ ! -d .venv ]; then make install; fi
 	@echo "🚀 Ruff (fast linter)..."
-	@. $(VENV_DIR)/bin/activate && ruff check src/ tests/
+	@. $(VENV_DIR)/bin/activate && ruff check src/ tests/ scripts/
 	@echo " Bandit (security)..."
-	@. $(VENV_DIR)/bin/activate && bandit -r src/ tests/ -f json -o security-report.json -ll -q || true
-	@. $(VENV_DIR)/bin/activate && bandit -r src/ tests/ -ll || true
+	@. $(VENV_DIR)/bin/activate && bandit -r src/ tests/ scripts/ -f json -o security-report.json -ll -q || true
+	@. $(VENV_DIR)/bin/activate && bandit -r src/ tests/ scripts/ -ll || true
 	@echo "✅ Quality analysis completed!"
 
 # Check only with ruff (faster for development)
 lint-fast:
 	@echo "⚡ Fast analysis with ruff..."
 	@if [ ! -d .venv ]; then make install; fi
-	@. $(VENV_DIR)/bin/activate && ruff check src/ tests/
+	@. $(VENV_DIR)/bin/activate && ruff check src/ tests/ scripts/
 	@echo "✅ Fast analysis completed!"
 
 # Automatically fix linting issues when possible
 fix:
 	@echo "🔧 Fixing issues automatically..."
 	@if [ ! -d .venv ]; then make install; fi
-	@. $(VENV_DIR)/bin/activate && ruff check --fix src/ tests/ || echo "⚠️  Some issues remain for manual review."
-	@. $(VENV_DIR)/bin/activate && ruff format src/ tests/
+	@. $(VENV_DIR)/bin/activate && ruff check --fix src/ tests/ scripts/ || echo "⚠️  Some issues remain for manual review."
+	@. $(VENV_DIR)/bin/activate && ruff format src/ tests/ scripts/
 	@echo "🧹 Cleaning notebook outputs..."
 	@. $(VENV_DIR)/bin/activate && nbstripout notebooks/*.ipynb 2>/dev/null || echo "⚠️  No notebooks found or nbstripout not installed"
 	@echo "✅ Code formatted and cleanups applied!"
@@ -134,8 +133,8 @@ fix:
 fix-force:
 	@echo "🚨 Applying aggressive fixes (unsafe)..."
 	@if [ ! -d .venv ]; then make install; fi
-	@. $(VENV_DIR)/bin/activate && ruff check --fix --unsafe-fixes src/ tests/ || echo "⚠️  Issues remain."
-	@. $(VENV_DIR)/bin/activate && ruff format src/ tests/
+	@. $(VENV_DIR)/bin/activate && ruff check --fix --unsafe-fixes src/ tests/ scripts/ || echo "⚠️  Issues remain."
+	@. $(VENV_DIR)/bin/activate && ruff format src/ tests/ scripts/
 	@echo "✅ Aggressive fixes applied!"
 
 # =============================================================================
@@ -179,7 +178,7 @@ run-api:
 run-question:
 	@echo "🚀 Running a single question"
 	@if [ ! -d .venv ]; then make install; fi
-	@. $(VENV_DIR)/bin/activate && PYTHONPATH=${PWD}/src python main.py --question "I have frequent headaches, can you help me prepare my medical consultation?"
+	@. $(VENV_DIR)/bin/activate && PYTHONPATH=${PWD}/src python main.py --question "What can you help me with?"
 
 # Start interactive CLI mode
 run-interactive:
@@ -188,13 +187,35 @@ run-interactive:
 	@. $(VENV_DIR)/bin/activate && PYTHONPATH=${PWD}/src python main.py --interactive
 
 # =============================================================================
+# OPENCODE RUNTIME (self-hosted / cloud, configured via .env)
+# =============================================================================
+
+# Launch the opencode TUI with .env loaded so opencode.json {env:...} resolves.
+opencode:
+	@command -v opencode >/dev/null 2>&1 || { echo "❌ opencode not found. Install: brew install anomalyco/tap/opencode"; exit 1; }
+	@[ -f .env ] || echo "⚠️  no .env found — copy .env.example to .env and edit (or use 'opencode auth login' / the /models picker)."
+	@set -a; [ -f .env ] && . ./.env; set +a; opencode
+
+# Verify opencode is installed and the configured local endpoints are reachable.
+opencode-doctor:
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	if command -v opencode >/dev/null 2>&1; then echo "✅ opencode: $$(opencode --version 2>/dev/null || echo installed)"; \
+	else echo "❌ opencode not installed (brew install anomalyco/tap/opencode)"; fi; \
+	for pair in "Ollama=$$OLLAMA_BASE_URL" "LM_Studio=$$LMSTUDIO_BASE_URL"; do \
+	  name=$${pair%%=*}; url=$${pair#*=}; \
+	  if [ -z "$$url" ]; then echo "–  $$name: not configured in .env"; continue; fi; \
+	  if curl -fsS --max-time 4 "$$url/models" >/dev/null 2>&1; then echo "✅ $$name reachable: $$url"; \
+	  else echo "❌ $$name unreachable: $$url (is the host up and the server listening?)"; fi; \
+	done
+
+# =============================================================================
 # DOCKER BUILD AND DEPLOYMENT
 # =============================================================================
 
 # Docker configuration variables
-IMG_NAME ?= medical-agent
+IMG_NAME ?= ml-python-base
 IMAGE_TAG ?= latest
-CONTAINER_NAME ?= medical-agent-server
+CONTAINER_NAME ?= ml-python-base-server
 API_PORT ?= 8008
 
 # Enable Docker BuildKit
@@ -234,17 +255,17 @@ stop-docker:
 check:
 	@echo "🔎 Running read-only quality gate..."
 	@if [ ! -d .venv ]; then make install; fi
-	@. $(VENV_DIR)/bin/activate && ruff format --check src/ tests/
-	@. $(VENV_DIR)/bin/activate && ruff check src/ tests/
-	@. $(VENV_DIR)/bin/activate && bandit -r src/ tests/ -ll -q
-	@. $(VENV_DIR)/bin/activate && mypy src/
+	@. $(VENV_DIR)/bin/activate && ruff format --check src/ tests/ scripts/
+	@. $(VENV_DIR)/bin/activate && ruff check src/ tests/ scripts/
+	@. $(VENV_DIR)/bin/activate && bandit -r src/ tests/ scripts/ -ll -q
+	@. $(VENV_DIR)/bin/activate && mypy src/ scripts/
 	@. $(VENV_DIR)/bin/activate && PYTHONPATH=${PWD}/src pytest tests/ --cov=src --cov-report=term-missing
 	@echo "✅ Quality gate passed (read-only)."
 
 # Static type checking only.
 typecheck:
 	@if [ ! -d .venv ]; then make install; fi
-	@. $(VENV_DIR)/bin/activate && mypy src/
+	@. $(VENV_DIR)/bin/activate && mypy src/ scripts/
 
 # Full CI pipeline: read-only quality gate + skill-sync drift gate.
 # CI must verify, not mutate — use `make fix`/`make format` locally instead.
@@ -257,6 +278,22 @@ ci:
 # =============================================================================
 # TEMPLATE SYNC WORKFLOW
 # =============================================================================
+
+# Bootstrap a fresh clone of this template as a new project.
+# Renames the package, rewrites references (keeping the upstream template URL),
+# creates .env, then chains environment setup and the read-only gates.
+# Usage:
+#   make init NAME=my_project
+# Preview without writing:
+#   python3 scripts/init_project.py --name my_project --dry-run
+init:
+	@[ -n "$(NAME)" ] || { echo "❌ Usage: make init NAME=my_project"; exit 1; }
+	@python3 scripts/init_project.py --name "$(NAME)"
+	@$(MAKE) install
+	@$(MAKE) sync-skills
+	@$(MAKE) template-remote-setup
+	@$(MAKE) ci
+	@echo "✅ Project '$(NAME)' initialized. Review the diff and commit."
 
 # Add (or update) template remote used for repository synchronization.
 # Usage:
@@ -376,9 +413,10 @@ purge-external-skills:
 
 # Show help information about available commands
 help:
-	@echo "🏥 Medical Consultation Preparation Agent - Available Commands:"
+	@echo "🧰 ML Python Base Template - Available Commands:"
 	@echo ""
 	@echo "Development Setup:"
+	@echo "  make init NAME=my_project Bootstrap a fresh clone as a new project (rename + env + gates)"
 	@echo "  make install              Set up virtual environment and dependencies"
 	@echo "  make setup-hooks          Set up pre-commit hooks"
 	@echo "  make generate-requirements Generate requirements.txt from current environment"
@@ -401,8 +439,12 @@ help:
 	@echo "Application Execution (Local):"
 	@echo "  make run-dev             Start LangGraph development server"
 	@echo "  make run-api             Start FastAPI server"
-	@echo "  make run-question        Test with predefined medical question"
+	@echo "  make run-question        Test with a predefined question"
 	@echo "  make run-interactive     Start interactive CLI mode"
+	@echo ""
+	@echo "OpenCode (self-hosted / cloud, via .env):"
+	@echo "  make opencode            Launch opencode TUI with .env loaded"
+	@echo "  make opencode-doctor     Check opencode install + local endpoints"
 	@echo ""
 	@echo "Docker:"
 	@echo "  make build-api           Build API Docker image"
@@ -444,4 +486,4 @@ clean:
 .DEFAULT_GOAL := help
 
 # Declare phony targets
-.PHONY: install setup-hooks run-dev run-api run-question run-interactive build-api run-api-docker stop-docker build-fresh clean help generate-requirements run-batch-test run-batch-test-custom test test-unit format lint lint-fast fix fix-force check typecheck ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-agents render-adapters sync-skills check-sync purge-external-skills
+.PHONY: init install setup-hooks run-dev run-api run-question run-interactive opencode opencode-doctor build-api run-api-docker stop-docker build-fresh clean help generate-requirements run-batch-test run-batch-test-custom test test-unit format lint lint-fast fix fix-force check typecheck ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-agents render-adapters sync-skills check-sync purge-external-skills

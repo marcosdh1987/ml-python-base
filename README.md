@@ -33,6 +33,22 @@ pip install uv
 
 ## 🛠️ Quick Start
 
+### 0. Start a New Project from This Template
+
+If this is a fresh clone meant to become a new project, bootstrap it first:
+
+```bash
+make init NAME=my_project
+```
+
+This renames the `ml_python_base` package, rewrites references (keeping the
+upstream template URL so `make template-sync-*` keeps working), creates `.env`
+from `.env.example`, installs the environment, refreshes the AI skill/agent
+adapters, and runs the read-only quality gates. Preview without writing:
+`python3 scripts/init_project.py --name my_project --dry-run`. Details in
+[docs/project-init.md](docs/project-init.md); AI assistants can drive the same
+flow via the `bootstrap_project` skill.
+
 ### 1. Setup Development Environment
 
 This command will install the specific Python version defined in the Makefile, create the virtual environment, and sync all dependencies from `uv.lock`.

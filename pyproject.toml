@@ -78,6 +78,8 @@ unfixable = []
 ]
 # The skills sync CLI legitimately prints user-facing progress to stdout.
 "src/ml_python_base/skills_sync/cli.py" = ["T201"]
+# Bootstrap/maintenance scripts are CLIs: stdout progress is their interface.
+"scripts/*.py" = ["T201"]
 
 [tool.ruff.lint.isort]
 # Configuración compatible con Black.
@@ -103,7 +105,7 @@ docstring-code-line-length = "dynamic"
 [tool.mypy]
 # Lenient baseline: catches obvious type errors without blocking the template.
 python_version = "3.11"
-files = ["src"]
+files = ["src", "scripts"]
 ignore_missing_imports = true
 warn_unused_ignores = true
 warn_redundant_casts = true
