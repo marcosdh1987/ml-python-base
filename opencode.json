@@ -3,7 +3,26 @@
   "instructions": ["OPENCODE.md"],
   "model": "{env:OPENCODE_MODEL}",
   "small_model": "{env:OPENCODE_SMALL_MODEL}",
+  "agent": {
+    "plan": {
+      "model": "{env:OPENCODE_MODEL_PLAN}"
+    },
+    "build": {
+      "model": "{env:OPENCODE_MODEL}"
+    }
+  },
   "provider": {
+    "nvidia": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "NVIDIA NIM (free cloud)",
+      "options": {
+        "baseURL": "https://integrate.api.nvidia.com/v1",
+        "apiKey": "{env:NVIDIA_API_KEY}"
+      },
+      "models": {
+        "nvidia/nemotron-3-super-120b-a12b": { "name": "Nemotron 3 Super 120B (free, planning)" }
+      }
+    },
     "ollama": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "Ollama (self-hosted)",

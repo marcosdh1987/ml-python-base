@@ -34,6 +34,8 @@ in `.env` (gitignored). Providers:
 
 - `ollama` / `lmstudio` — custom OpenAI-compatible providers; `baseURL` comes from
   `OLLAMA_BASE_URL` / `LMSTUDIO_BASE_URL`.
+- `nvidia` — NVIDIA NIM (free, cloud, OpenAI-compatible) for a big planning model;
+  `apiKey` from `NVIDIA_API_KEY`.
 - `openai` and `opencode` (OpenCode Zen) — built-in; authenticate with
   `opencode auth login` (keychain) or `OPENAI_API_KEY`.
 
@@ -41,6 +43,34 @@ Tiering is two levels via `model` (main) + `small_model` (lightweight), both fro
 `.env` (`OPENCODE_MODEL`, `OPENCODE_SMALL_MODEL`). A single local GPU rarely runs
 three large models at once, so per-agent 3-tier splitting is intentionally not
 forced here; switch the active model anytime with `/models` in the TUI.
+
+### Plan with a big cloud model, execute self-hosted
+
+OpenCode ships two **primary agents** you cycle with `Tab`: `plan` (read-only,
+for designing) and `build` (full tools, for executing). `opencode.json` pins a
+different model to each, both from `.env`:
+
+```jsonc
+// opencode.json (already wired)
+"agent": {
+  "plan":  { "model": "{env:OPENCODE_MODEL_PLAN}" },  // big cloud model
+  "build": { "model": "{env:OPENCODE_MODEL}" }         // self-hosted
+}
+```
+
+```bash
+# .env
+OPENCODE_MODEL_PLAN=nvidia/nvidia/nemotron-3-super-120b-a12b   # plan: Nemotron Super (free NIM)
+OPENCODE_MODEL=lmstudio/qwen/qwen3-coder-30b                   # build: your LM Studio box
+NVIDIA_API_KEY=nvapi-...                                       # free key from build.nvidia.com
+```
+
+Workflow: open `make opencode`, stay in **Plan** (Nemotron) to design the change,
+then `Tab` to **Build** (your local Qwen Coder) to implement it — big-model planning,
+zero-cost local execution. The model id is `<provider-id>/<api-model-id>`, hence the
+doubled `nvidia/nvidia/...`. No NVIDIA key? Use OpenCode Zen's free Nemotron instead:
+`OPENCODE_MODEL_PLAN=opencode/nemotron-3-ultra-free` (after `opencode auth login`),
+or any OpenRouter `:free` model.
 
 ### Setup from the CLI
 
