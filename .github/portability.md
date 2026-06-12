@@ -59,18 +59,26 @@ different model to each, both from `.env`:
 ```
 
 ```bash
-# .env
-OPENCODE_MODEL_PLAN=nvidia/nvidia/nemotron-3-super-120b-a12b   # plan: Nemotron Super (free NIM)
-OPENCODE_MODEL=lmstudio/qwen/qwen3-coder-30b                   # build: your LM Studio box
-NVIDIA_API_KEY=nvapi-...                                       # free key from build.nvidia.com
+# .env  (default: no extra API key — Zen free model for planning)
+OPENCODE_MODEL_PLAN=opencode/nemotron-3-ultra-free            # plan: Zen free Nemotron Ultra
+OPENCODE_MODEL=lmstudio/qwen/qwen3-coder-30b                  # build: your LM Studio box
 ```
 
-Workflow: open `make opencode`, stay in **Plan** (Nemotron) to design the change,
-then `Tab` to **Build** (your local Qwen Coder) to implement it — big-model planning,
-zero-cost local execution. The model id is `<provider-id>/<api-model-id>`, hence the
-doubled `nvidia/nvidia/...`. No NVIDIA key? Use OpenCode Zen's free Nemotron instead:
-`OPENCODE_MODEL_PLAN=opencode/nemotron-3-ultra-free` (after `opencode auth login`),
-or any OpenRouter `:free` model.
+The default planner is **OpenCode Zen** (`opencode/*-free`), which only needs
+`opencode auth login` once — no NVIDIA key, nothing breaks out of the box. Other free
+Zen options: `opencode/deepseek-v4-flash-free`, `opencode/mimo-v2.5-free`,
+`opencode/north-mini-code-free`.
+
+Workflow: open `make opencode`, stay in **Plan** (the free big model) to design the
+change, then `Tab` to **Build** (your local Qwen Coder) to implement it — big-model
+planning, zero-cost local execution.
+
+Prefer NVIDIA NIM instead? Set `OPENCODE_MODEL_PLAN=nvidia/nvidia/nemotron-3-super-120b-a12b`
+and `NVIDIA_API_KEY=nvapi-...` (free key from build.nvidia.com). The id is
+`<provider-id>/<api-model-id>`, hence the doubled `nvidia/nvidia/...`.
+
+> Day-to-day operating guide (when to `Tab`, where skills run): see
+> [`docs/opencode-workflow.md`](../docs/opencode-workflow.md).
 
 ### Setup from the CLI
 
