@@ -27,6 +27,9 @@ strategy.
    to touch.
 3. Define the exit criteria and which `make` gates prove them.
 4. Surface assumptions and ask for missing inputs before finalizing.
+5. Size each step to the executor tier (see `docs/task-sizing.md`). When the
+   executor is a weak/self-hosted model, emit one-file, independently-verifiable
+   steps and order them so the first deliverable is the smallest thing that runs.
 </instructions>
 
 <constraints>

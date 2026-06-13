@@ -49,3 +49,6 @@ discussion reveals design-impacting decisions that deserve a written, approved s
 5. Do not write production code in this phase — output ideas, options, and a
    recommendation only.
 6. Keep all artifacts in English.
+7. When the target executor is a weak/self-hosted model, bias the recommendation
+   toward the **simplest option that runs** (not the most elegant), and hand off a
+   backlog sliced into one-file, runnable-first steps. See `docs/task-sizing.md`.

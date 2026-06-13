@@ -31,6 +31,11 @@ Deliver a feature through explicit orchestration phases with architecture-safe e
 
 - Phase report (1 to 5).
 - Approved implementation plan.
+- Execution backlog: the plan as an ordered list of steps where each step is
+  independently verifiable (compiles / a test passes / it runs), names the one or
+  few files it touches, and is annotated with the target tier
+  (`planner` / `executor` / `fast`). Size steps to that tier — see
+  `docs/task-sizing.md`.
 - Selected skills map.
 - Code/test/doc change summary.
 - Validation checklist with pass/fail evidence.
@@ -63,6 +68,21 @@ Deliver a feature through explicit orchestration phases with architecture-safe e
 
 - Validate against `.github/automation.md` and `.github/orchestration.md`.
 - Review diffs, run required checks, and produce final summary.
+
+## Small-context / weak-model mode
+
+When the executor is a weak or self-hosted model (small context window, weaker
+instruction-following), the default full flow can loop without converging. Adapt:
+
+- Treat the work as a `spike` first (flat structure, runnable milestone) and
+  promote to clean architecture only once it runs — see `docs/task-sizing.md`.
+- Execute **one file (or one function) per turn**; run or test it before the next.
+- Make the first deliverable the smallest thing that **runs**, not the most
+  correct or complete one; add one capability per loop.
+- Keep the same model for planning and execution, or a planner only slightly
+  stronger, so backlog steps stay sized to what the executor can chew.
+- If a step cannot be stated as "produce/modify this one file and verify it", it
+  is too big — split it before executing.
 
 ## Execution Rules
 

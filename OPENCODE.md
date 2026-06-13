@@ -67,6 +67,9 @@ Use explicit orchestration for complex tasks:
 - Review diffs before finalizing.
 - Validate results against automation requirements.
 - Do not generate large outputs without first invoking the relevant skill.
+- Size each step to the active model. On a weak/self-hosted build model, work in
+  one-file chunks and reach a runnable milestone before expanding — see
+  `docs/task-sizing.md`.
 
 ## Level 5 — Agents and SDLC
 
