@@ -12,6 +12,9 @@ This file defines Level 4 orchestration so complex tasks follow deterministic ex
 - Execute work in explicit phases.
 - Complete each phase before moving to the next one.
 - Re-scope only when a blocking constraint is discovered.
+- Size each step to the executor model tier; for weak/self-hosted executors,
+  prefer one-file, independently-verifiable steps and a runnable milestone first.
+  See `docs/task-sizing.md`.
 
 ## Mandatory Diff Review
 

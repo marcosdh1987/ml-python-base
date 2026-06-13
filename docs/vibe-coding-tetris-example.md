@@ -259,3 +259,21 @@ the AI should do (governed, tool-agnostic) from *how* each tool executes it
 Adding a sixth tool requires one entry in `adapters/registry.toml` + one Jinja2
 template — the skills, agents, and SDLC gates remain untouched. The governed
 constraints travel with the repository, not with any specific AI product.
+
+---
+
+## Lessons from running this on self-hosted models
+
+Strong cloud models (Copilot, Codex) converge on this prompt. Weak self-hosted
+models (e.g. `qwen3-coder-30b` via OpenCode) tend not to — the interaction runs
+long and produces no playable game. The cause is rarely the prompt; it is runtime
+and sizing: a too-small served context window, too-high temperature, a
+strong-planner/weak-executor gap, and a task handed over whole instead of sliced
+into a runnable-first backlog.
+
+The full reasoning and the heuristics (chunk size per tier, complexity tiers, the
+"first runnable milestone" loop) are in [`task-sizing.md`](task-sizing.md); the
+runtime levers are in [`../.env.example`](../.env.example) and
+[`../.github/portability.md`](../.github/portability.md). For a weak self-hosted
+build model, treat this prompt as a `spike` (flat, runnable-first), not the full
+five-phase `feature` flow shown above.

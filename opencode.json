@@ -5,10 +5,12 @@
   "small_model": "{env:OPENCODE_SMALL_MODEL}",
   "agent": {
     "plan": {
-      "model": "{env:OPENCODE_MODEL_PLAN}"
+      "model": "{env:OPENCODE_MODEL_PLAN}",
+      "temperature": 0.2
     },
     "build": {
-      "model": "{env:OPENCODE_MODEL}"
+      "model": "{env:OPENCODE_MODEL}",
+      "temperature": 0.2
     }
   },
   "provider": {

@@ -109,7 +109,30 @@ designed to survive this:
   projector may drop or down-tier `large`-only agents when the active runtime's
   models cannot satisfy `min context`.
 - **Skill degradation.** Long skills can document a shorter "degraded mode" path
-  for small-window runtimes.
+  for small-window runtimes. `plan_and_execute_feature` and `brainstorm_quick`
+  carry an explicit weak-model path.
+
+### Self-hosted that won't converge: checklist
+
+A weak self-hosted model that loops forever and never produces a working result
+(the classic symptom: very long interaction, no runnable artifact) is almost
+always one of these — check in order:
+
+1. **Served context window too small.** A model served at 4k-8k cannot hold
+   governance + skills + the plan + history. opencode cannot fix this; raise it at
+   the server (LM Studio Context Length, Ollama `num_ctx`) to >= 16k-32k. This is
+   the #1 cause.
+2. **Temperature too high.** Weak coder models wander at default temp; the `plan`
+   and `build` agents in `opencode.json` ship at `0.2` (a number, not
+   `{env:...}`-interpolable).
+3. **Planner↔executor gap.** A strong planner writing for a weak executor produces
+   steps the executor can't chew. Self-hosted: use the same coder model for plan
+   and build, or a planner only slightly stronger.
+4. **Task too big for one execution turn.** Slice into the smallest
+   independently-verifiable increment and aim for a runnable milestone first.
+
+Levers 1-3 live in `.env.example` / `opencode.json`; lever 4 is
+[`docs/task-sizing.md`](../docs/task-sizing.md).
 
 ## Activation checklist
 
