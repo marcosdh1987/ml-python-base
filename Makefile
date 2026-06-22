@@ -206,7 +206,11 @@ opencode-doctor:
 	  if [ -z "$$url" ]; then echo "–  $$name: not configured in .env"; continue; fi; \
 	  if curl -fsS --max-time 4 "$$url/models" >/dev/null 2>&1; then echo "✅ $$name reachable: $$url"; \
 	  else echo "❌ $$name unreachable: $$url (is the host up and the server listening?)"; fi; \
-	done
+	done; \
+	if [ -n "$$GATEWAY_BASE_URL" ]; then \
+	  if curl -fsS --max-time 4 "$$GATEWAY_BASE_URL/models" -H "Authorization: Bearer $$GATEWAY_TOKEN" >/dev/null 2>&1; then echo "✅ AI Gateway reachable: $$GATEWAY_BASE_URL"; \
+	  else echo "❌ AI Gateway unreachable: $$GATEWAY_BASE_URL (is 'docker compose up' running on :4000 and GATEWAY_TOKEN correct?)"; fi; \
+	else echo "–  AI Gateway: GATEWAY_BASE_URL not set in .env (using direct ollama/lmstudio providers)"; fi
 
 # =============================================================================
 # DOCKER BUILD AND DEPLOYMENT

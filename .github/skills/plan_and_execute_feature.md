@@ -16,6 +16,10 @@ Deliver a feature through explicit orchestration phases with architecture-safe e
   at Phase 4 (Execution), then Phase 5 (Validation). Use this for implementing a feature,
   fixing a bug, or executing scoped engineering work through governed orchestration
   instead of ad-hoc generation.
+- `mode: local_model_32k` — for small self-hosted models (Qwen 3.x / 3.6, 27B-35B @ 32k)
+  driving spikes / vibe coding via Copilot / OpenCode. Never deliver in one response: emit a
+  small single-file backlog and execute one step per turn. See the weak-model section below
+  and `LOCAL_AGENT.md`.
 
 ## Required Input
 
@@ -83,6 +87,17 @@ instruction-following), the default full flow can loop without converging. Adapt
   stronger, so backlog steps stay sized to what the executor can chew.
 - If a step cannot be stated as "produce/modify this one file and verify it", it
   is too big — split it before executing.
+
+Under Copilot agent mode specifically (`mode: local_model_32k`), add an output discipline —
+weak models otherwise try to regenerate whole files and fail with `Response too long`:
+
+- **Edit, never rewrite.** Change only the wrong lines; never regenerate a whole file.
+- **One root cause per turn.** If asked to "fix everything", fix the single most critical
+  cause, list the rest deferred (one line each), and stop.
+- **Small output, fixed shape:** `Target file:` / `Expected change:` / `Validation:`, then the
+  edit, then a one-line result. No analysis or summary prose (it accelerates compaction).
+- This is enforced mechanically by a gateway `max_tokens` cap — see `LOCAL_AGENT.md` and
+  [`../../docs/local-model-runtime-config.md`](../../docs/local-model-runtime-config.md).
 
 ## Execution Rules
 
