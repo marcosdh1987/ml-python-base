@@ -191,9 +191,14 @@ run-interactive:
 # =============================================================================
 
 # Launch the opencode TUI with .env loaded so opencode.json {env:...} resolves.
+# Installs opencode-conductor-plugin into the global opencode config dir on first run.
 opencode:
 	@command -v opencode >/dev/null 2>&1 || { echo "❌ opencode not found. Install: brew install anomalyco/tap/opencode"; exit 1; }
 	@[ -f .env ] || echo "⚠️  no .env found — copy .env.example to .env and edit (or use 'opencode auth login' / the /models picker)."
+	@if [ ! -d "$$HOME/.config/opencode/node_modules/opencode-conductor-plugin" ]; then \
+	  echo "🔌 Installing opencode-conductor-plugin..."; \
+	  npm install --prefix "$$HOME/.config/opencode" opencode-conductor-plugin; \
+	fi
 	@set -a; [ -f .env ] && . ./.env; set +a; opencode
 
 # Verify opencode is installed and the configured local endpoints are reachable.

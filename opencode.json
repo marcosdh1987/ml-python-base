@@ -11,6 +11,10 @@
     "build": {
       "model": "{env:OPENCODE_MODEL}",
       "temperature": 0.2
+    },
+    "conductor": {
+      "model": "{env:OPENCODE_MODEL_PLAN}",
+      "temperature": 0.2
     }
   },
   "provider": {
