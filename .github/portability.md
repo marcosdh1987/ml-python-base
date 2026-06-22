@@ -134,6 +134,41 @@ always one of these — check in order:
 Levers 1-3 live in `.env.example` / `opencode.json`; lever 4 is
 [`docs/task-sizing.md`](../docs/task-sizing.md).
 
+### A different symptom: `Response too long` (output overrun)
+
+The checklist above fixes the **input** loop (never converges, long interaction). A separate
+failure shows up mainly under **GitHub Copilot agent mode**: the model tries to regenerate a
+whole file in one shot, the response exceeds Copilot's ceiling, and the turn fails with
+`Response too long`. This is an **output** problem — no instruction-file rule or Copilot
+setting caps output. The only reliable control point is your model gateway:
+
+- If you front the local model with a LiteLLM gateway, set `max_tokens: 2048` per model in
+  `config.yaml`. A capped response cannot overrun, so the failure becomes impossible and the
+  cap forces small, targeted edits.
+
+Full mechanical setup (gateway cap, served context for Copilot's ~9k-token prompt, VS Code
+settings, why soft rules alone fail): [`docs/local-model-runtime-config.md`](../docs/local-model-runtime-config.md).
+
+### Recommended preset for local vibe coding (`local_model_32k`)
+
+A concrete instance of the tiers above for spikes driven via Copilot / OpenCode / LM Studio
+(generic tier support stays intact):
+
+- **Gateway output cap (mechanical, the important one):** `max_tokens: 2048` on the local
+  model — makes whole-file rewrites and `Response too long` impossible.
+- **Served context:** 32k minimum; 64k if the GPU allows (Copilot's own prompt eats ~9k,
+  leaving ~20-22k usable at 32k).
+- **Temperature:** 0.2.
+- **One model for plan and build** (or a planner only slightly stronger) — mind the
+  planner↔executor gap.
+- **Driver:** OpenCode (`make opencode`) routed through the ai-gateway — **not** Copilot agent
+  mode (its ~9k-token prompt saturates a 32k window). Build = `gateway/...-build` (local),
+  plan = strong cloud; usage shows in Langfuse. See `docs/local-model-runtime-config.md`.
+
+Operating rules: [`LOCAL_AGENT.md`](../LOCAL_AGENT.md). Sizing:
+[`docs/task-sizing.md`](../docs/task-sizing.md). Mechanical setup:
+[`docs/local-model-runtime-config.md`](../docs/local-model-runtime-config.md).
+
 ## Activation checklist
 
 1. Install and start Ollama / LM Studio on your GPU host(s); pull the models you set

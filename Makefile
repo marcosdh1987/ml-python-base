@@ -191,9 +191,14 @@ run-interactive:
 # =============================================================================
 
 # Launch the opencode TUI with .env loaded so opencode.json {env:...} resolves.
+# Installs opencode-conductor-plugin into the global opencode config dir on first run.
 opencode:
 	@command -v opencode >/dev/null 2>&1 || { echo "❌ opencode not found. Install: brew install anomalyco/tap/opencode"; exit 1; }
 	@[ -f .env ] || echo "⚠️  no .env found — copy .env.example to .env and edit (or use 'opencode auth login' / the /models picker)."
+	@if [ ! -d "$$HOME/.config/opencode/node_modules/opencode-conductor-plugin" ]; then \
+	  echo "🔌 Installing opencode-conductor-plugin..."; \
+	  npm install --prefix "$$HOME/.config/opencode" opencode-conductor-plugin; \
+	fi
 	@set -a; [ -f .env ] && . ./.env; set +a; opencode
 
 # Verify opencode is installed and the configured local endpoints are reachable.
@@ -206,7 +211,11 @@ opencode-doctor:
 	  if [ -z "$$url" ]; then echo "–  $$name: not configured in .env"; continue; fi; \
 	  if curl -fsS --max-time 4 "$$url/models" >/dev/null 2>&1; then echo "✅ $$name reachable: $$url"; \
 	  else echo "❌ $$name unreachable: $$url (is the host up and the server listening?)"; fi; \
-	done
+	done; \
+	if [ -n "$$GATEWAY_BASE_URL" ]; then \
+	  if curl -fsS --max-time 4 "$$GATEWAY_BASE_URL/models" -H "Authorization: Bearer $$GATEWAY_TOKEN" >/dev/null 2>&1; then echo "✅ AI Gateway reachable: $$GATEWAY_BASE_URL"; \
+	  else echo "❌ AI Gateway unreachable: $$GATEWAY_BASE_URL (is 'docker compose up' running on :4000 and GATEWAY_TOKEN correct?)"; fi; \
+	else echo "–  AI Gateway: GATEWAY_BASE_URL not set in .env (using direct ollama/lmstudio providers)"; fi
 
 # =============================================================================
 # DOCKER BUILD AND DEPLOYMENT

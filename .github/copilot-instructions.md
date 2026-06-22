@@ -1,5 +1,25 @@
 # Copilot Instructions (Template Governance Adapter)
 
+## `local_model_32k` mode — read this first, it overrides everything below
+
+When the task is a spike / prototype / vibe-coding session (the user mentions
+`local_model_32k` or `LOCAL_AGENT.md`, or asks to build/fix step by step):
+
+- Apply `LOCAL_AGENT.md` only. **Skip Levels 1-5 below** — no governance, no skill lookups.
+- **These override the general guidance in this file:** do NOT "gather as much context as
+  needed", do NOT "read large chunks", do NOT keep calling tools until fully done. Instead:
+  one whole-file read, one targeted edit, one result line, then stop.
+- **Never rewrite a whole file** and keep output small — a large response fails with
+  "Response too long" and loses the turn. Fix one root cause per turn.
+- **End each increment by telling the user to open a NEW chat** — long chats get auto-compacted
+  and you lose the code state. Never output a "what's implemented / what's missing" summary; on
+  resume, re-read only what the next increment needs.
+
+Output is also capped at the gateway (`max_tokens`) so over-long responses fail fast by
+design — see `docs/local-model-runtime-config.md`.
+
+---
+
 Use the following 4-level structure as the single source of truth:
 
 ## Level 1 — Governance

@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "instructions": ["OPENCODE.md"],
+  "instructions": ["OPENCODE.md", "LOCAL_AGENT.md"],
   "model": "{env:OPENCODE_MODEL}",
   "small_model": "{env:OPENCODE_SMALL_MODEL}",
   "agent": {
@@ -11,9 +11,31 @@
     "build": {
       "model": "{env:OPENCODE_MODEL}",
       "temperature": 0.2
+    },
+    "conductor": {
+      "model": "{env:OPENCODE_MODEL_PLAN}",
+      "temperature": 0.2
     }
   },
   "provider": {
+    "gateway": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "AI Gateway (LiteLLM :4000)",
+      "options": {
+        "baseURL": "{env:GATEWAY_BASE_URL}",
+        "apiKey": "{env:GATEWAY_TOKEN}"
+      },
+      "models": {
+        "lmstudio-qwen3.6-35b-build": { "name": "Qwen3.6 35B build (local, capped)" },
+        "lmstudio-qwen3.6-27b-build": { "name": "Qwen3.6 27B build (local, capped)" },
+        "ollama-qwen3.6-35b-build": { "name": "Qwen3.6 35B build (Ollama, capped)" },
+        "ollama-qwen3.6-27b-build": { "name": "Qwen3.6 27B build (Ollama, capped)" },
+        "gpt-5.5": { "name": "GPT-5.5 (cloud, plan — default)" },
+        "gpt-5": { "name": "GPT-5 (cloud, plan — cheaper)" },
+        "claude-sonnet-4.6": { "name": "Claude Sonnet 4.6 (cloud, plan — last resort, Bedrock ~2x)" },
+        "auto": { "name": "Auto router (complexity-tiered)" }
+      }
+    },
     "nvidia": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "NVIDIA NIM (free cloud)",

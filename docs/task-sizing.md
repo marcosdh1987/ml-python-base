@@ -90,8 +90,17 @@ When the driver is a weak self-hosted model, **do not** start from the full
 5-phase `feature` flow. Start from a `spike`, reach a runnable milestone, and only
 then decide whether to promote it.
 
+When the driver is a small self-hosted model via Copilot, this `spike` + one-file +
+runnable-first discipline is named **`local_model_32k`** and is enforced mechanically (a
+gateway output cap), not just by these heuristics — see the runtime-config doc below.
+
 ## See also
 
+- [`LOCAL_AGENT.md`](../LOCAL_AGENT.md) — the short always-loaded operating contract for the
+  `local_model_32k` mode.
+- [`docs/local-model-runtime-config.md`](local-model-runtime-config.md) — the mechanical layer
+  (gateway `max_tokens` cap, served context, VS Code settings) that makes these heuristics
+  binding instead of advisory.
 - [`.github/portability.md`](../.github/portability.md) — tiers, self-hosted
   convergence checklist.
 - [`.env.example`](../.env.example) — context length, temperature, model choice.

@@ -237,6 +237,16 @@ Documentation template:
 
 - `docs/implementation-template.md` (use it when implementing and testing new changes)
 
+Self-hosted / local-model mode (`local_model_32k`):
+
+- To develop with small self-hosted models (Qwen 3.x / 3.6, 27B-35B @ 32k), the recommended
+  path is **OpenCode routed through your ai-gateway** (`make opencode`): plan with a strong
+  cloud model, build local at $0, all visible in Langfuse. Start with the **"Priority order"**
+  in [docs/local-model-runtime-config.md](docs/local-model-runtime-config.md) — the mechanical
+  layer (gateway output cap, repetition penalty, served context) that makes a 32k model
+  usable. Short operating rules: `LOCAL_AGENT.md`. Sizing heuristics:
+  [docs/task-sizing.md](docs/task-sizing.md).
+
 ## 🔧 Available Commands
 
 | Command | Description |
