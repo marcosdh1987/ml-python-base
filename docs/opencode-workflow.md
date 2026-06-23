@@ -72,4 +72,11 @@ The default planner uses **OpenCode Zen** (free): run `opencode auth login` once
 extra key needed. Launch with `make opencode` (loads `.env`); check local endpoints
 with `make opencode-doctor`. Other free Zen planners: `opencode/deepseek-v4-flash-free`,
 `opencode/mimo-v2.5-free`, `opencode/north-mini-code-free`. To use NVIDIA NIM instead,
-set `OPENCODE_MODEL_PLAN=nvidia/nvidia/nemotron-3-super-120b-a12b` + `NVIDIA_API_KEY`.
+route through the ai-gateway with one of the configured aliases:
+
+```bash
+OPENCODE_MODEL_PLAN=gateway/nim-nemotron-ultra-550b
+# or gateway/nim-nemotron-super-120b, gateway/nim-llama3.3-70b,
+# gateway/nim-llama4-maverick-17b, gateway/nim-qwen3-next-80b,
+# gateway/nim-kimi-k2.6
+```

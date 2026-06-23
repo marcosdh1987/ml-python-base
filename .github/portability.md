@@ -34,8 +34,10 @@ in `.env` (gitignored). Providers:
 
 - `ollama` / `lmstudio` — custom OpenAI-compatible providers; `baseURL` comes from
   `OLLAMA_BASE_URL` / `LMSTUDIO_BASE_URL`.
+- `gateway` — AI Gateway / LiteLLM OpenAI-compatible provider for local profiles,
+  cloud planners, and NVIDIA NIM aliases such as `gateway/nim-nemotron-ultra-550b`.
 - `nvidia` — NVIDIA NIM (free, cloud, OpenAI-compatible) for a big planning model;
-  `apiKey` from `NVIDIA_API_KEY`.
+  `apiKey` from `NVIDIA_API_KEY` when bypassing the gateway.
 - `openai` and `opencode` (OpenCode Zen) — built-in; authenticate with
   `opencode auth login` (keychain) or `OPENAI_API_KEY`.
 
@@ -73,9 +75,12 @@ Workflow: open `make opencode`, stay in **Plan** (the free big model) to design 
 change, then `Tab` to **Build** (your local Qwen Coder) to implement it — big-model
 planning, zero-cost local execution.
 
-Prefer NVIDIA NIM instead? Set `OPENCODE_MODEL_PLAN=nvidia/nvidia/nemotron-3-super-120b-a12b`
-and `NVIDIA_API_KEY=nvapi-...` (free key from build.nvidia.com). The id is
-`<provider-id>/<api-model-id>`, hence the doubled `nvidia/nvidia/...`.
+Prefer NVIDIA NIM through your ai-gateway instead? Set one of the configured aliases,
+for example `OPENCODE_MODEL_PLAN=gateway/nim-nemotron-ultra-550b`. Available gateway
+aliases are `gateway/nim-nemotron-super-120b`, `gateway/nim-nemotron-ultra-550b`,
+`gateway/nim-llama3.3-70b`, `gateway/nim-llama4-maverick-17b`,
+`gateway/nim-qwen3-next-80b`, and `gateway/nim-kimi-k2.6`. The NVIDIA API key stays
+in your LiteLLM gateway config.
 
 > Day-to-day operating guide (when to `Tab`, where skills run): see
 > [`docs/opencode-workflow.md`](../docs/opencode-workflow.md).
