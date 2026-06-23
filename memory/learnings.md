@@ -3,6 +3,13 @@
 > Non-obvious facts discovered while working: gotchas, why-it-is-this-way, dead ends
 > to avoid. Append new entries at the top. One fact per entry.
 
+## OpenCode gateway model ids mirror LiteLLM aliases — 2026-06-23
+
+When LiteLLM exposes a model as `model_name: nim-*`, OpenCode should list the key
+under `provider.gateway.models` without the provider prefix and select it as
+`gateway/<model_name>` in `.env`. The NVIDIA API key stays in the gateway config;
+the repo only needs `GATEWAY_BASE_URL` and `GATEWAY_TOKEN`.
+
 ## How this template is wired for agents — 2026-06-22
 
 The single source of truth for governance and skills lives in `.github/`; native
