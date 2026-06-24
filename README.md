@@ -378,6 +378,26 @@ make stop-docker
 - **Pytest**: `pyproject.toml` - `[tool.pytest.ini_options]`
 - **Editor**: `.editorconfig`
 
+## 🔩 Harness Engineering Reference
+
+This template is the **reference implementation** of a harness engineering approach:
+governance rules, operational skills, automation gates, and orchestration policies are
+encoded directly in the repo so every AI assistant reads them on first load — no manual
+prompting required.
+
+The full methodology lives in a separate public guide (`harness-engineering-guide`).
+This repo ships only the operational layer that derived projects inherit.
+
+Key documents:
+
+- [docs/harness-engineering.md](docs/harness-engineering.md) — what harness engineering
+  means here, how the four-level rule system works, and what must never be added to this
+  template.
+- [docs/harness-architecture.md](docs/harness-architecture.md) — the projection engine
+  that pushes rules into Claude Code, Copilot, Antigravity, OpenCode, and Codex.
+- [docs/open-source-readiness.md](docs/open-source-readiness.md) — checklist before
+  making this repo or any derived repo publicly available.
+
 ## 🤝 Contributing
 
 1. Create a new branch
