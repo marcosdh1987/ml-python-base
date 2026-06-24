@@ -261,9 +261,15 @@ stop-docker:
 
 # Read-only quality gate (CI-safe: never mutates the working tree).
 # Mirrors `make fix`/`make format` checks without applying changes.
+# `uv sync --locked --exact` first asserts pyproject <-> uv.lock are consistent
+# and rebuilds .venv to EXACTLY the lock (--exact prunes anything extra) — so the
+# gate cannot pass on a manually pip-installed (undeclared) dependency. It mutates
+# only .venv, never source.
 check:
 	@echo "🔎 Running read-only quality gate..."
 	@if [ ! -d .venv ]; then make install; fi
+	@echo "🔒 Syncing environment from uv.lock (drift guard)..."
+	@uv sync --locked --exact
 	@. $(VENV_DIR)/bin/activate && ruff format --check src/ tests/ scripts/
 	@. $(VENV_DIR)/bin/activate && ruff check src/ tests/ scripts/
 	@. $(VENV_DIR)/bin/activate && bandit -r src/ tests/ scripts/ -ll -q

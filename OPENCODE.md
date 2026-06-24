@@ -68,12 +68,48 @@ Prefer system-enforced quality over model-only behavior:
 
 Check `Makefile` before suggesting commands.
 
+### Enforced gates (verify-gate plugin)
+
+This repo enforces verification mechanically via `.opencode/plugin/verify-gate.ts`
+(auto-loaded by opencode). Treat its output as a hard signal, not a substitute for
+your own discipline:
+
+- **After every `*.py` edit/write** it auto-runs `ruff --fix` + `ruff format` and
+  reports any remaining `ruff` / `py_compile` errors inline. If you see a
+  `[verify-gate] … still has issues` note, **fix it in the same turn** before
+  doing anything else. Never build on top of code that does not compile.
+- **When the turn ends** it runs `make check`. A `make check FAILED` toast means
+  **the work is not done** — keep going until it is green. `make check` also
+  rebuilds `.venv` from `uv.lock`, so it catches undeclared dependencies too.
+
+### Non-negotiable rules
+
+1. **Never declare a task done while the gate is red.** "Done" means `make check`
+   passes (drift guard, ruff, mypy, bandit, pytest). A summary that claims success
+   while code does not run is a defect, not a deliverable.
+2. **Run the code you write.** Import it, test it, or execute it at least once.
+   Mechanical bugs (typos, wrong imports, undefined names, hallucinated APIs) are
+   only caught by execution — not by re-reading.
+3. **Tests are part of the deliverable**, not optional. If a task's acceptance
+   criteria mention tests, real `tests/` are required — a `demo.py` is not a
+   substitute.
+4. **Verify APIs against the installed version**, never from memory. Check the
+   library version and read the actual signatures before using them.
+5. **Declare dependencies; never `pip install` ad hoc.** New deps go in
+   `pyproject.toml` + `uv lock`. The gate prunes anything undeclared, so hidden
+   installs fail in CI — see `.github/automation.md`.
+
 ## Level 4 — Orchestration
 
 Use explicit orchestration for complex tasks:
 
 - Orchestration policy: `.github/orchestration.md`
-- Plan first, then execute.
+- Plan first, then execute. For anything beyond a trivial change, write a short
+  scoped plan (what is in scope and **explicitly what is not**) before editing. On
+  a weak/self-hosted build model, hand planning to the `plan` agent first.
+- **Stay within the requested scope.** If the task names a phase or unit of work,
+  build only that unit's deliverables; do not scaffold later phases. Ground in the
+  roadmap/specs to know the boundary. Half-built future work is churn, not progress.
 - Complete each phase before moving to the next.
 - Review diffs before finalizing.
 - Validate results against automation requirements.
