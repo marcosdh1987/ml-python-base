@@ -94,6 +94,7 @@ Read and follow:
 - Prefer `make` targets and `uv` workflows.
 - Update docs in `docs/` when implementation or tests change.
 - Use absolute imports only.
+- NEVER perform git commits, git pushes, or branch integrations automatically. Leave all changes unstaged so the user can commit them manually.
 
 ## Operating discipline (Antigravity)
 
