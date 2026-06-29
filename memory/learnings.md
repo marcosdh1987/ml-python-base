@@ -10,6 +10,13 @@ under `provider.gateway.models` without the provider prefix and select it as
 `gateway/<model_name>` in `.env`. The NVIDIA API key stays in the gateway config;
 the repo only needs `GATEWAY_BASE_URL` and `GATEWAY_TOKEN`.
 
+## Antigravity skill manifest tracks generated ownership — 2026-06-29
+
+`.agents/skills/.generated-manifest.tsv` is the skills_sync ownership list, not a
+complete inventory of every local `.agents/skills/*/SKILL.md` directory. Runtime or
+local-only skill dirs can sit beside generated skills; manifest/hash tests should
+iterate manifest entries, not every local skill directory.
+
 ## How this template is wired for agents — 2026-06-22
 
 The single source of truth for governance and skills lives in `.github/`; native

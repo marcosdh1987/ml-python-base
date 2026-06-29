@@ -34,9 +34,12 @@ end-to-end loop live in `docs/agentic-workflow.md`.
 6. **Prefer CLI, load tools on demand.** Reach for `make` / `uv` / CLI over MCP where
    both work (leaner and reproducible). Use ToolSearch to load tool schemas on demand
    rather than assuming a tool is unavailable.
-7. **Recover, don't thrash.** On an error, diagnose the cause before retrying; do not
+7. **Use the toolbelt before asking.** Before asking the user for operational or
+   repository information, check whether an available MCP server, CLI, Make target,
+   or local service can retrieve it directly. See `docs/claude-toolbelt.md`.
+8. **Recover, don't thrash.** On an error, diagnose the cause before retrying; do not
    hammer the same file repeatedly. Get it right early rather than iterating blindly.
-8. **Match the model to the task.** Use the planner / executor / fast tiers in
+9. **Match the model to the task.** Use the planner / executor / fast tiers in
    `.github/portability.md`; offload routine sub-work to cheaper models and reserve
    the strongest model for planning and hard reasoning.
 

@@ -31,20 +31,18 @@ _SHELL_PIPELINE = (
 )
 
 
-def _skill_dirs(repo_root: Path) -> list[Path]:
-    # Mirror the engine's discovery contract: a directory is a skill only when
-    # it carries a SKILL.md. Runtimes (e.g. Antigravity) may leave behind empty
-    # stub dirs that are not real skills and never reach the manifest.
+def _skill_dirs(repo_root: Path, manifest: dict[str, str]) -> list[Path]:
+    # Mirror the engine's ownership contract: the manifest lists the generated
+    # skills owned by skills_sync. Runtimes may leave local skill dirs beside
+    # them, and those local dirs must not make the committed manifest stale.
     base = repo_root / ".agents/skills"
-    return sorted(
-        d for d in base.iterdir() if d.is_dir() and (d / "SKILL.md").is_file()
-    )
+    return [base / name for name in manifest if (base / name / "SKILL.md").is_file()]
 
 
 def test_folder_hash_matches_committed_manifest(repo_root: Path) -> None:
     manifest = read_manifest(repo_root / MANIFEST)
     assert manifest, "expected a populated Antigravity manifest"
-    for skill_dir in _skill_dirs(repo_root):
+    for skill_dir in _skill_dirs(repo_root, manifest):
         expected = manifest.get(skill_dir.name)
         assert expected is not None, f"missing manifest entry for {skill_dir.name}"
         assert folder_hash(skill_dir) == expected, skill_dir.name
@@ -55,7 +53,9 @@ def test_folder_hash_matches_committed_manifest(repo_root: Path) -> None:
     reason="neither shasum nor sha256sum available",
 )
 def test_folder_hash_matches_shell_pipeline(repo_root: Path) -> None:
-    for skill_dir in _skill_dirs(repo_root):
+    manifest = read_manifest(repo_root / MANIFEST)
+    assert manifest, "expected a populated Antigravity manifest"
+    for skill_dir in _skill_dirs(repo_root, manifest):
         result = subprocess.run(
             ["sh", "-c", _SHELL_PIPELINE, "sh", str(skill_dir)],
             capture_output=True,

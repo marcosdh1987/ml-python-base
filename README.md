@@ -13,6 +13,7 @@ A modern Python base project template with best practices for machine learning a
 - **Testing** setup with pytest and coverage
 - **Docker** support for containerization
 - **Dev Containers** ready for consistent development environments
+- **Claude Toolbelt** guidance for MCP servers, CLIs, and local service checks
 
 ## 📋 Prerequisites
 
@@ -167,6 +168,7 @@ make ci
 │   └── adr/                #   Architecture Decision Records (the durable "why")
 ├── .claude/                # Claude Code harness: commands/, hooks/, settings, skills
 ├── .mcp.json               # Optional MCP servers (library docs, git) — opt-in
+├── .mcp.example.json       # Example optional MCP expansions without secrets
 ├── Makefile               # Development commands
 ├── pyproject.toml         # Project configuration & dependencies
 ├── uv.lock                # Exact versions lockfile (DO NOT EDIT MANUALLY)
@@ -234,6 +236,7 @@ Adapters:
 
 - Claude Code entrypoint: `CLAUDE.md`
 - Claude Code native skills: `.claude/skills/` generated from `.github/skills/` and `.github/skills-external/`
+- Claude Code slash commands: `.claude/commands/`, including `/toolbelt` for MCP/CLI/service discovery
 - Copilot entrypoint: `.github/copilot-instructions.md`
 - Antigravity workspace rules: `.agents/rules/`
 - Antigravity native skills: `.agents/skills/` generated from `.github/skills/` and `.github/skills-external/`
@@ -269,6 +272,7 @@ the path of least resistance:
 | Memory | `memory/` | Persistent working memory (`context`, `learnings`, `patterns`) across sessions. |
 | Decisions | `docs/adr/` | Architecture Decision Records — the durable "why". |
 | MCP servers | `.mcp.json` | Optional extra tools (library docs via context7, git). Opt-in; require the tool to be installed. |
+| Toolbelt guide | `docs/claude-toolbelt.md` | When to use MCP, CLI, Make targets, or local services before asking the user. |
 
 Full guide: [docs/agentic-workflow.md](docs/agentic-workflow.md). How this maps to
 assessments of AI-assisted coding skill (and what a template can/can't influence):
@@ -287,6 +291,7 @@ assessments of AI-assisted coding skill (and what a template can/can't influence
 | `make fix` | Auto-fix linting issues |
 | `make test` | Run tests with coverage |
 | `make ci` | Run full CI pipeline |
+| `make toolbelt-doctor` | Check expected CLIs and configured local service endpoints |
 | `make setup-claude-skills` | Generate `.claude/skills` native symlinks from governed skills |
 | `make setup-antigravity-skills` | Generate `.agents/skills` native Antigravity mirror from governed skills |
 | `make sync-skills` | Sync external skills, refresh `skills-lock.json`, and refresh Claude and Antigravity native skill layouts |
@@ -416,6 +421,8 @@ This repo ships only the operational layer that derived projects inherit.
 
 Key documents:
 
+- [docs/claude-toolbelt.md](docs/claude-toolbelt.md) — operational MCP, CLI, Make,
+  and local-service toolbelt for Claude Code.
 - [docs/harness-engineering.md](docs/harness-engineering.md) — what harness engineering
   means here, how the four-level rule system works, and what must never be added to this
   template.

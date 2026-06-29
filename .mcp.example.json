@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json.schemastore.org/mcp.json",
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"]
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git", "--repository", "."]
+    }
+  },
+  "optionalMcpServers": {
+    "_note": "Copy entries from this section into mcpServers only after installing the server and configuring credentials locally. Keep secrets in environment variables, not in this file.",
+    "github": {
+      "enabled": false,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "browser-search": {
+      "enabled": false,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+      }
+    },
+    "filesystem-project": {
+      "enabled": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${PROJECT_ROOT}"
+      ]
+    },
+    "cloud-provider": {
+      "enabled": false,
+      "command": "npx",
+      "args": ["-y", "replace-with-cloud-provider-mcp-server"],
+      "env": {
+        "AWS_PROFILE": "${AWS_PROFILE}",
+        "GOOGLE_APPLICATION_CREDENTIALS": "${GOOGLE_APPLICATION_CREDENTIALS}",
+        "AZURE_CONFIG_DIR": "${AZURE_CONFIG_DIR}"
+      }
+    },
+    "local-observability": {
+      "enabled": false,
+      "command": "npx",
+      "args": ["-y", "replace-with-observability-mcp-server"],
+      "env": {
+        "GATEWAY_BASE_URL": "${GATEWAY_BASE_URL}",
+        "LANGFUSE_HOST": "${LANGFUSE_HOST}",
+        "MLFLOW_TRACKING_URI": "${MLFLOW_TRACKING_URI}"
+      }
+    }
+  }
+}
