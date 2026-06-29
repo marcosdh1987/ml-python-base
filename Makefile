@@ -217,6 +217,10 @@ opencode-doctor:
 	  else echo "❌ AI Gateway unreachable: $$GATEWAY_BASE_URL (is 'docker compose up' running on :4000 and GATEWAY_TOKEN correct?)"; fi; \
 	else echo "–  AI Gateway: GATEWAY_BASE_URL not set in .env (using direct ollama/lmstudio providers)"; fi
 
+# Inspect the local Claude toolbelt: CLIs and optional service endpoints.
+toolbelt-doctor:
+	@python3 scripts/toolbelt_doctor.py
+
 # =============================================================================
 # DOCKER BUILD AND DEPLOYMENT
 # =============================================================================
@@ -494,6 +498,9 @@ help:
 	@echo "  make opencode            Launch opencode TUI with .env loaded"
 	@echo "  make opencode-doctor     Check opencode install + local endpoints"
 	@echo ""
+	@echo "Claude Toolbelt:"
+	@echo "  make toolbelt-doctor     Check MCP-adjacent CLIs and optional local services"
+	@echo ""
 	@echo "Docker:"
 	@echo "  make build-api           Build API Docker image"
 	@echo "  make build-fresh         Build without cache"
@@ -534,4 +541,4 @@ clean:
 .DEFAULT_GOAL := help
 
 # Declare phony targets
-.PHONY: init install setup-hooks run-dev run-api run-question run-interactive opencode opencode-doctor build-api run-api-docker stop-docker build-fresh clean help generate-requirements run-batch-test run-batch-test-custom test test-unit format lint lint-fast fix fix-force check typecheck ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-agents render-adapters sync-skills check-sync purge-external-skills
+.PHONY: init install setup-hooks run-dev run-api run-question run-interactive opencode opencode-doctor toolbelt-doctor build-api run-api-docker stop-docker build-fresh clean help generate-requirements run-batch-test run-batch-test-custom test test-unit format lint lint-fast fix fix-force check typecheck ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-agents render-adapters sync-skills check-sync purge-external-skills

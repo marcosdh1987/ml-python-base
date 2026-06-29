@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/marcossoto/Documents/tools/ml-python-base/.codex/hooks/session_start.sh'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/marcossoto/Documents/tools/ml-python-base/.codex/hooks/stop_nudge.sh'"
+          }
+        ]
+      }
+    ]
+  }
+}
