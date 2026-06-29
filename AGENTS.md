@@ -74,3 +74,4 @@ Refresh this layout with `make sync-skills` (or `make check-sync` to verify it i
 - Use user language for interaction.
 - Keep all code artifacts in English.
 - Prefer Makefile and uv workflows.
+- NEVER perform git commits, git pushes, or branch integrations automatically. Leave all changes unstaged so the user can commit them manually.
