@@ -93,14 +93,26 @@ def _health_request(url: str) -> request.Request:
 def check_service(service: ServiceCheck) -> Row:
     """Return a diagnostic row for one optional service."""
     base_url = os.environ.get(service.env_var, "").strip()
+    is_default = False
+
     if not base_url:
-        return Row(
-            service.env_var,
-            "service",
-            "not configured",
-            service.env_var,
-            service.note,
-        )
+        defaults = {
+            "GATEWAY_BASE_URL": "http://localhost:4000/v1",
+            "LANGFUSE_HOST": "http://localhost:3000",
+            "MLFLOW_TRACKING_URI": "http://localhost:5000",
+            "OLLAMA_BASE_URL": "http://localhost:11434/v1",
+            "LMSTUDIO_BASE_URL": "http://localhost:1234/v1",
+        }
+        base_url = defaults.get(service.env_var, "")
+        is_default = True
+        if not base_url:
+            return Row(
+                service.env_var,
+                "service",
+                "not configured",
+                service.env_var,
+                service.note,
+            )
 
     url = _join_url(base_url, service.health_path)
     try:
@@ -111,10 +123,35 @@ def check_service(service: ServiceCheck) -> Row:
             status = getattr(response, "status", 200)
             response.read(64)
     except (OSError, error.URLError, error.HTTPError, TimeoutError) as exc:
+        if is_default:
+            return Row(
+                service.env_var,
+                "service",
+                "not configured",
+                "-",
+                service.note,
+            )
         return Row(service.env_var, "service", "unreachable", url, str(exc))
 
     if 200 <= int(status) < 400:
+        if is_default:
+            return Row(
+                service.env_var,
+                "service",
+                "detected (default)",
+                url,
+                f"{service.note} - set {service.env_var} to use",
+            )
         return Row(service.env_var, "service", "reachable", url, service.note)
+
+    if is_default:
+        return Row(
+            service.env_var,
+            "service",
+            "not configured",
+            "-",
+            service.note,
+        )
     return Row(service.env_var, "service", "unreachable", url, f"HTTP {status}")
 
 
