@@ -16,6 +16,49 @@ How to work in this repository to produce high-quality, well-grounded changes. T
 are defaults, not ceremony — scale them to the task. The full rationale and the
 end-to-end loop live in `docs/agentic-workflow.md`.
 
+### Ideal working loop
+
+Use **Ground → Plan → Delegate → Verify → Compound** for all meaningful work. The
+loop is mandatory as a mental model; the amount of ceremony must scale with task
+size, risk, and reversibility.
+
+#### Tiny changes
+
+For typos, comments, one-line fixes, or obvious local edits:
+
+- Read the target file before editing.
+- Make the smallest safe change.
+- Run the narrowest relevant check when one exists.
+- Do not create ADRs, memory entries, or broad plans unless something non-obvious
+  was learned.
+
+#### Normal engineering tasks
+
+For bugs, features, refactors, tests, docs with behavior impact, or multi-file
+changes:
+
+1. **Ground** — inspect relevant files, search usages, and read project memory when
+   useful.
+2. **Plan** — write a short phased plan before editing.
+3. **Delegate** — use subagents when subtasks are independent.
+4. **Verify** — run focused checks during the work and a final project gate before
+   completion.
+5. **Compound** — update memory or ADRs only for durable learnings or decisions.
+
+#### Large or risky work
+
+For architectural, cross-module, production, data, security, migration, or
+hard-to-reverse work:
+
+- Use explicit planning and phase boundaries.
+- Prefer parallel research, review, implementation, and test subagents where tasks
+  are independent.
+- Require verification and review before declaring the work done.
+- Record architectural decisions in `docs/adr/`.
+
+Do not perform ceremony for its own sake. A typo does not need an ADR; a durable
+architecture choice does.
+
 1. **Ground before doing.** Read and search the relevant code before editing. Skim
    `memory/context.md` and `memory/learnings.md` for prior context. Explore first;
    blind edits cause rework.

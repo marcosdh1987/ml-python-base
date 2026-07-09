@@ -43,6 +43,18 @@ The loop below is just these three ideas arranged in the order you hit them.
         └─────────────────────  next task  ──────────────────┘
 ```
 
+The loop applies to all meaningful work, but the ceremony scales with task size,
+risk, and reversibility:
+
+| Task size | Use the loop like this |
+|-----------|-------------------------|
+| **Tiny change** | Read the target file, make the smallest safe edit, run the narrowest relevant check if one exists, and skip ADRs or memory unless something non-obvious was learned. |
+| **Normal engineering task** | Ground the change, write a short plan, delegate independent subtasks when useful, verify with focused and final checks, and compound durable learnings or decisions. |
+| **Large or risky work** | Use explicit phase boundaries, parallel research/review/test agents where independent, require verification and review before declaring done, and record hard-to-reverse decisions in `docs/adr/`. |
+
+Do not perform ceremony for its own sake. A typo does not need an ADR; a durable
+architecture choice does. The loop is a mental model first and a process second.
+
 ### 1. Ground
 
 Understand before you act. Read the relevant code, search broadly, and skim
