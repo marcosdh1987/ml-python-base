@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/marcosdh1987/ml-python-base/schemas/harness-release-v1.schema.json",
+  "title": "Harness template release manifest",
+  "description": "Machine-readable provenance and compatibility record attached to a SemVer GitHub Release of the template. Generated after the tag exists; never committed with a self-referential commit SHA.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "release", "compatibility", "channels", "provenance", "artifacts"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "version", "ref", "commit", "published_at"],
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "ref": {"type": "string", "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "published_at": {"type": "string", "minLength": 1}
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sync_protocol", "minimum_consumer_protocol", "breaking", "migration_document"],
+      "properties": {
+        "sync_protocol": {"type": "integer", "minimum": 0},
+        "minimum_consumer_protocol": {"type": "integer", "minimum": 0},
+        "breaking": {"type": "boolean"},
+        "migration_document": {"type": ["string", "null"]}
+      }
+    },
+    "channels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["governance", "platform"],
+      "properties": {
+        "governance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["paths"],
+          "properties": {
+            "paths": {"type": "array", "items": {"type": "string"}}
+          }
+        },
+        "platform": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["changed", "paths"],
+          "properties": {
+            "changed": {"type": "boolean"},
+            "paths": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proposals", "source_issues", "source_pull_requests"],
+      "properties": {
+        "proposals": {"type": "array", "items": {"type": "string"}},
+        "source_issues": {"type": "array", "items": {"type": "string"}},
+        "source_pull_requests": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["governance_tree_sha256", "skills_lock_sha256", "registry_sha256"],
+      "properties": {
+        "governance_tree_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "skills_lock_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "registry_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

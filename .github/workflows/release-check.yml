@@ -1,0 +1,48 @@
+name: Release Check
+
+# Read-only release preflight for the traceable release contract. It validates a
+# candidate release and NEVER publishes: no commit, tag, push, or GitHub Release is
+# created here. Tagging and publication stay manual (see docs/harness-release-lifecycle.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version to preflight (X.Y.Z)"
+        required: true
+        type: string
+      base_ref:
+        description: "Baseline ref for governance/platform classification (e.g. v0.1.0)"
+        required: false
+        type: string
+
+jobs:
+  release-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: make install
+
+      # The preflight runs the read-only quality + drift gates itself; it mutates
+      # nothing. A non-zero exit here means the release is not ready to publish.
+      - name: Release preflight (read-only)
+        env:
+          VERSION: ${{ inputs.version }}
+          BASE_REF: ${{ inputs.base_ref }}
+        run: |
+          make harness-release-check VERSION="${VERSION}" \
+            ${BASE_REF:+BASE_REF="${BASE_REF}"}

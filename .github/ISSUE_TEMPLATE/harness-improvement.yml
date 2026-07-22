@@ -1,0 +1,105 @@
+name: Harness improvement proposal
+description: >-
+  Propose a governed change to shared skills, agents, or governance docs, backed
+  by sanitized lab evidence. Maps to a versioned HEP proposal and a SemVer release.
+title: "[HEP] "
+labels: ["lab-proposal", "validation-required"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sanitize before submitting. Do NOT paste raw prompts, logs, diffs, local
+        paths, tokens, private repository links, or sensitive run IDs. Publish only
+        the aggregate observation and the exact artifacts to change.
+  - type: input
+    id: proposal_id
+    attributes:
+      label: Proposal ID
+      description: The HEP identifier from the lab (data/harness-proposals/…).
+      placeholder: HEP-2026-014
+    validations:
+      required: true
+  - type: dropdown
+    id: channel
+    attributes:
+      label: Change channel
+      description: >-
+        Governance = skills/agents/governance docs/adapter templates (safe to sync).
+        Platform = sync engine, Makefile, registry, packaging (separate reviewed PR).
+      options:
+        - governance
+        - platform
+    validations:
+      required: true
+  - type: dropdown
+    id: semver
+    attributes:
+      label: Expected SemVer impact
+      description: >-
+        PATCH = clarification, MINOR = additive compatible rule/skill/agent/tool,
+        MAJOR = removal/rename/contract break/registry-or-layout change.
+      options:
+        - "semver:patch"
+        - "semver:minor"
+        - "semver:major"
+    validations:
+      required: true
+  - type: textarea
+    id: observation
+    attributes:
+      label: Observation
+      description: The failure mode and expected behavior, in aggregate terms.
+      placeholder: |
+        failure_mode: Agent repeated an equivalent failing command.
+        expected_behavior: Reframe the hypothesis after the retry budget.
+        evidence_summary: Seen in two independent runs.
+    validations:
+      required: true
+  - type: textarea
+    id: affected_artifacts
+    attributes:
+      label: Affected artifacts
+      description: Exact shared files to change (source of truth under .github/ or adapters/templates).
+      placeholder: |
+        - .github/skills/systematic_debugging/SKILL.md
+        - .github/orchestration.md
+    validations:
+      required: true
+  - type: textarea
+    id: suggested_change
+    attributes:
+      label: Suggested change
+      description: A concise summary of the rule/behavior to add or adjust.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation criteria
+      description: Canonical cases and measurable success criteria the lab will gate on.
+      placeholder: |
+        cases:
+          - systematic-debugging-v1
+        success_criteria:
+          - metric: repeated_equivalent_command_max
+            operator: lte
+            value: 2
+    validations:
+      required: true
+  - type: input
+    id: source_runs
+    attributes:
+      label: Source run condition hashes
+      description: Sanitized run identifiers / condition hashes backing the evidence (no raw data).
+      placeholder: "condition_hash: sha256:… (x2 runs)"
+    validations:
+      required: true
+  - type: checkboxes
+    id: sanitization
+    attributes:
+      label: Sanitization confirmation
+      options:
+        - label: This issue contains no secrets, tokens, local paths, or raw private run data.
+          required: true
+        - label: A reviewed HEP proposal exists in the lab and links back to this issue.
+          required: true

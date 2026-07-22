@@ -12,7 +12,14 @@ All notable changes to this template are documented here. The format is based on
   pulls only the governance layer (skills, agents, governance docs, adapter templates)
   from a tag/branch and regenerates adapters — without touching code, `Makefile`, or data.
   Records the synced version in `.template-version` (`scripts/template_sync.py`).
-- **Release flow**: `make template-release VERSION=X.Y.Z` (semver tags + this CHANGELOG).
+- **Traceable release contract**: read-only preflight and manifest tooling
+  (`scripts/harness_release.py`, `make/harness.mk`, `schemas/harness-release-v1.schema.json`).
+  `make harness-release-check VERSION=X.Y.Z` validates SemVer, version/changelog
+  agreement, tag collision, a clean tree, governance-vs-platform classification, and
+  provenance; `make harness-release VERSION=X.Y.Z` prints the exact manual tag/publish
+  commands; `make harness-release-manifest` generates the release asset after tagging.
+  Tagging, pushing, and GitHub Release publication stay manual. A structured
+  `harness-improvement` issue form and a read-only `release-check` workflow accompany it.
 - Governance run-trace and operating-discipline rules in `.github/sdlc.md` (mandatory SDLC
   skill flow, validate-before-done, minimize human interventions, task-scope confinement,
   start/end run trace).
