@@ -314,17 +314,38 @@ to a specific version and adopt improvements incrementally.
 
 ### For maintainers of this template — cut a release
 
+Releases use the **traceable release contract**: a read-only preflight validates the
+release, then you tag and publish **manually**. Tooling never commits, tags, pushes,
+or publishes for you (`make template-release` is deprecated and now just points here).
+
+**After your governance PR is merged to `main`**, copy-paste this (replace `X.Y.Z`,
+e.g. `0.3.0`, and `PREV` with the previous tag, e.g. `v0.2.0`):
+
 ```bash
-# 1. Add a ## [X.Y.Z] section to CHANGELOG.md
-# 2. Commit your governance changes normally
-git add .github/ .agents/ CHANGELOG.md && git commit -m "feat: ..."
+git switch main && git pull --ff-only
 
-# 3. Tag the release (bumps pyproject, creates annotated tag)
-make template-release VERSION=0.3.0
+# 1. Reconcile the version: bump `version` in pyproject.toml and add a
+#    `## [X.Y.Z]` section to CHANGELOG.md, then commit that on a branch + merge.
 
-# 4. Push branch + tags
-git push origin main --tags
+# 2. Read-only preflight (SemVer, version/changelog match, tag collision, clean
+#    tree, governance-vs-platform classification, gates). Must pass before tagging.
+make harness-release-check VERSION=X.Y.Z BASE_REF=PREV
+
+# 3. Print the exact publish steps (mutates nothing):
+make harness-release VERSION=X.Y.Z
+
+# 4. Run the printed commands MANUALLY:
+git tag -a vX.Y.Z -m "Template release vX.Y.Z"
+git push origin vX.Y.Z
+gh release create vX.Y.Z --title vX.Y.Z --notes "Template release vX.Y.Z"
+
+# 5. Generate the release manifest (written to the git-ignored dist/) and attach it:
+make harness-release-manifest VERSION=X.Y.Z PUBLISHED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+gh release upload vX.Y.Z dist/harness-release-vX.Y.Z.yaml
 ```
+
+For the very first baseline (no previous tag), omit `BASE_REF` in step 2.
+Full policy and provenance flags: [docs/harness-release-lifecycle.md](docs/harness-release-lifecycle.md).
 
 ### For downstream projects — adopt a release
 
