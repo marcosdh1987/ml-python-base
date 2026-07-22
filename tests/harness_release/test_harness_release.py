@@ -220,6 +220,12 @@ def test_recommend_bump() -> None:
     assert hr.recommend_bump(doc) == "patch"
 
 
+def test_bump_version() -> None:
+    assert hr.bump_version("0.2.0", "patch") == "0.2.1"
+    assert hr.bump_version("0.2.0", "minor") == "0.3.0"
+    assert hr.bump_version("0.2.5", "major") == "1.0.0"
+
+
 def test_changed_paths_reads_name_status(repo: Path) -> None:
     base = _base_sha(repo)
     _write(repo, ".github/architecture.md", "# Architecture\nv2\n")

@@ -322,40 +322,52 @@ make version
 # ✅ v0.2.0 is published.
 ```
 
-### For maintainers of this template — cut a release
+### Cut a release (maintainers)
 
-Releases use the **traceable release contract**: a read-only preflight validates the
-release, then you tag and publish **manually**. Tooling never commits, tags, pushes,
-or publishes for you (`make template-release` is deprecated and now just points here).
+Releases are **manual and traceable**: the tooling validates and prints commands but
+never commits, tags, pushes, or publishes (`make template-release` is deprecated and
+points here). Everything below uses **one version number** — and you don't invent it,
+the tooling tells you.
 
-**After your governance PR is merged to `main`**, copy-paste this (replace `X.Y.Z`,
-e.g. `0.3.0`, and `PREV` with the previous tag, e.g. `v0.2.0`):
+#### Step 1 — Get the next version number
+
+```bash
+make harness-change-summary BASE_REF=$(git describe --tags --abbrev=0)
+# 👉 Recommended bump: PATCH  (current 0.2.0 → next 0.2.1)
+#    Use this version in pyproject.toml, CHANGELOG.md, and the release: 0.2.1
+```
+
+That number follows SemVer — **PATCH** = fix / docs / tooling · **MINOR** = new skill,
+agent, rule, or supported tool · **MAJOR** = removal, rename, or breaking change. Use
+it as the `VERSION` everywhere below (this example uses `0.2.1`).
+
+#### Step 2 — Put that number in two files, then PR + merge
+
+| File | What to change |
+|---|---|
+| `pyproject.toml` | `version = "0.2.1"` |
+| `CHANGELOG.md` | add a `## [0.2.1]` section at the top, listing the changes |
+
+Commit on a branch, open a PR, and merge to `main`.
+
+#### Step 3 — Publish (after the merge)
+
+Replace `0.2.1` with your number and copy-paste the whole block:
 
 ```bash
 git switch main && git pull --ff-only
-
-# 1. Reconcile the version: bump `version` in pyproject.toml and add a
-#    `## [X.Y.Z]` section to CHANGELOG.md, then commit that on a branch + merge.
-
-# 2. Read-only preflight (SemVer, version/changelog match, tag collision, clean
-#    tree, governance-vs-platform classification, gates). Must pass before tagging.
-make harness-release-check VERSION=X.Y.Z BASE_REF=PREV
-
-# 3. Print the exact publish steps (mutates nothing):
-make harness-release VERSION=X.Y.Z
-
-# 4. Run the printed commands MANUALLY:
-git tag -a vX.Y.Z -m "Template release vX.Y.Z"
-git push origin vX.Y.Z
-gh release create vX.Y.Z --title vX.Y.Z --notes "Template release vX.Y.Z"
-
-# 5. Generate the release manifest (written to the git-ignored dist/) and attach it:
-make harness-release-manifest VERSION=X.Y.Z PUBLISHED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-gh release upload vX.Y.Z dist/harness-release-vX.Y.Z.yaml
+make harness-release VERSION=0.2.1        # preflight (runs the gates) + prints these
+git tag -a v0.2.1 -m "Template release v0.2.1"
+git push origin v0.2.1
+gh release create v0.2.1 --title v0.2.1 --notes "Template release v0.2.1"
+make harness-release-manifest VERSION=0.2.1 PUBLISHED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+gh release upload v0.2.1 dist/harness-release-v0.2.1.yaml
 ```
 
-For the very first baseline (no previous tag), omit `BASE_REF` in step 2.
-Full policy and provenance flags: [docs/harness-release-lifecycle.md](docs/harness-release-lifecycle.md).
+`make harness-release` refuses to proceed unless `pyproject.toml` and `CHANGELOG.md`
+match the version, the tag is new, and the tree is clean — so if Step 2 was skipped it
+stops you with a clear message. Full policy and provenance flags:
+[docs/harness-release-lifecycle.md](docs/harness-release-lifecycle.md).
 
 ### For downstream projects — adopt a release
 
