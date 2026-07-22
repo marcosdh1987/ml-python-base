@@ -10,6 +10,7 @@ from ml_python_base.skills_sync.models import (
     VALID_LINK_STRATEGIES,
     Governance,
     Registry,
+    TemplateSyncPolicy,
     ToolSpec,
 )
 
@@ -27,6 +28,7 @@ def load_registry(path: Path = DEFAULT_REGISTRY_PATH) -> Registry:
         raise RegistryError(f"Invalid TOML in {path}: {exc}") from exc
 
     governance = _parse_governance(raw.get("governance", {}))
+    template_sync = _parse_template_sync(raw.get("template_sync", {}))
     tools = _parse_tools(raw.get("tool", []))
     if not tools:
         raise RegistryError("Registry declares no [[tool]] entries.")
@@ -35,6 +37,7 @@ def load_registry(path: Path = DEFAULT_REGISTRY_PATH) -> Registry:
         schema_version=int(raw.get("schema_version", 1)),
         governance=governance,
         tools=tuple(tools),
+        template_sync=template_sync,
     )
 
 
@@ -45,6 +48,37 @@ def _parse_governance(block: dict) -> Governance:
         automation=str(block.get("automation", "")),
         orchestration=str(block.get("orchestration", "")),
     )
+
+
+def _parse_template_sync(block: dict) -> TemplateSyncPolicy:
+    protocol = int(block.get("protocol", 0))
+    if protocol < 0:
+        raise RegistryError("template_sync protocol must be zero or greater.")
+
+    governance_paths = _parse_sync_paths(block, "governance_paths")
+    platform_paths = _parse_sync_paths(block, "platform_paths")
+    overlap = sorted(set(governance_paths) & set(platform_paths))
+    if overlap:
+        raise RegistryError(
+            "template_sync governance/platform paths overlap: " + ", ".join(overlap)
+        )
+    return TemplateSyncPolicy(
+        protocol=protocol,
+        governance_paths=governance_paths,
+        platform_paths=platform_paths,
+    )
+
+
+def _parse_sync_paths(block: dict, key: str) -> tuple[str, ...]:
+    raw_paths = block.get(key, ())
+    if not isinstance(raw_paths, list | tuple):
+        raise RegistryError(f"template_sync {key} must be a list of paths.")
+    paths = tuple(str(path).strip().rstrip("/") for path in raw_paths)
+    if any(not path for path in paths):
+        raise RegistryError(f"template_sync {key} contains an empty path.")
+    if len(paths) != len(set(paths)):
+        raise RegistryError(f"template_sync {key} contains duplicate paths.")
+    return paths
 
 
 def _parse_tools(entries: list[dict]) -> list[ToolSpec]:

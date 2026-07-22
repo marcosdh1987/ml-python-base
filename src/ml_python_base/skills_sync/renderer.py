@@ -82,15 +82,25 @@ def expected_file(root: Path, registry: Registry, tool: ToolSpec) -> str | None:
     return splice(path.read_text(encoding="utf-8"), region)
 
 
-def render_tool(root: Path, registry: Registry, tool: ToolSpec) -> bool:
-    """Write the managed region into the adapter file. Returns True if changed."""
+def render_tool(
+    root: Path,
+    registry: Registry,
+    tool: ToolSpec,
+    skills: list[Skill] | None = None,
+) -> bool:
+    """Write the managed region into the adapter file. Returns True if changed.
+
+    ``skills`` overrides discovery for controlled experiments such as a
+    per-run skill ablation. Omitting it preserves the normal authoritative
+    discovery behavior.
+    """
     if not tool.adapter_file:
         return False
     path = root / tool.adapter_file
     if not path.is_file():
         return False
     current = path.read_text(encoding="utf-8")
-    updated = splice(current, render_region(root, registry, tool))
+    updated = splice(current, render_region(root, registry, tool, skills=skills))
     if updated == current:
         return False
     path.write_text(updated, encoding="utf-8")

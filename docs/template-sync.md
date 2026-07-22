@@ -77,6 +77,51 @@ After it runs, review with `git diff`, then `make check-sync && make check`, and
 (ideally on a branch). If your project locally customized a governance file, the overwrite
 surfaces in `git diff` for you to reconcile.
 
+## Synchronization ownership and protocol
+
+`adapters/registry.toml` declares the versioned synchronization contract under
+`[template_sync]`. A registry without this block is a legacy protocol `0`
+consumer; this template currently declares protocol `1`.
+
+The contract separates two channels that must never be applied together:
+
+| Channel | Ownership | Update method |
+|---|---|---|
+| `governance_paths` | Rules, skills, agents, governance documents, and adapter templates owned by `ml-python-base` | Selective sync from an immutable release, followed by generated adapter refresh and review |
+| `platform_paths` | Sync engine, bootstrap/release scripts, Make targets, registry structure, package metadata, and locks | Separate compatibility review and pull request; never copied by governance sync |
+
+The registry is the machine-readable inventory. The current governance channel
+contains only:
+
+- `.github/skills/`, `.github/skills-external/`, and `.github/agents/`;
+- `.github/architecture.md`, `standards.md`, `domain-boundaries.md`, `sdlc.md`,
+  `orchestration.md`, `automation.md`, and `portability.md`;
+- `adapters/templates/`.
+
+The platform inventory contains `src/ml_python_base/skills_sync/`, template
+bootstrap/sync scripts, `Makefile`, `adapters/registry.toml`, `pyproject.toml`,
+and `uv.lock`. Listing a platform path does not authorize automatic copying.
+
+### Consumer-specific behavior
+
+A consumer may keep operational configuration outside the governance allowlist.
+It must not edit a governed path and treat that edit as a second authoritative
+copy. A useful experiment can temporarily override generated views at runtime,
+but promotion requires an issue and pull request back to `ml-python-base`.
+
+The initial lab audit found three relevant differences:
+
+| Path | Classification | Resolution |
+|---|---|---|
+| `src/ml_python_base/skills_sync/renderer.py` | Shared platform improvement required for skill ablation | Promoted to this template with compatibility tests in the shared-engine alignment change |
+| `.github/automation.md` | Consumer is behind the authoritative dependency drift guard | Reconcile through a future tagged governance sync |
+| `.github/portability.md` | Mix of shared guidance and lab-specific gateway configuration | Keep shared provider guidance here; move lab-only runtime details outside governed paths before adoption |
+
+Generated native views remain derived artifacts. A consumer must regenerate
+them with `make sync-skills` after governance sync and must not promote a manual
+edit from `.claude/`, `.opencode/`, `.codex/`, `.agents/`, or generated adapter
+regions back into the source channel.
+
 ### Bootstrapping an older project (first adoption)
 
 A project created before `make template-sync` existed has no `scripts/template_sync.py` yet,
