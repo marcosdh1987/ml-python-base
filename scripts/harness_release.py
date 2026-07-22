@@ -638,10 +638,16 @@ def cmd_release_manifest(args: argparse.Namespace) -> int:
         for e in errors:
             print(f"   · {e}")
         return EXIT_INVALID
-    out_path = REPO_ROOT / f"harness-release-{ref}.yaml"
+    # Written under the git-ignored dist/ so the release asset is never
+    # accidentally committed (it carries a self-referential commit SHA).
+    dist_dir = REPO_ROOT / "dist"
+    dist_dir.mkdir(parents=True, exist_ok=True)
+    out_path = dist_dir / f"harness-release-{ref}.yaml"
     out_path.write_text(serialize_yaml(manifest), encoding="utf-8")
-    print(f"✅ Wrote release manifest: {out_path.name}")
-    print(f"   Attach it manually to the GitHub Release for {ref}.")
+    rel = out_path.relative_to(REPO_ROOT)
+    print(f"✅ Wrote release manifest: {rel}")
+    print(f"   Attach it manually to the GitHub Release for {ref}:")
+    print(f"   gh release upload {ref} {rel}")
     return EXIT_OK
 
 
@@ -662,11 +668,18 @@ def cmd_release(args: argparse.Namespace) -> int:
         return code
     ref = f"v{args.version}"
     print("\n📋 Preflight passed. Run these commands MANUALLY to publish:")
+    print("   # 1. Create and push the immutable annotated tag")
     print(f'   git tag -a {ref} -m "Template release {ref}"')
     print(f"   git push origin {ref}")
-    print(f"   gh release create {ref} --title {ref} --notes-file <release-notes.md>")
-    print(f"   make harness-release-manifest VERSION={args.version}")
-    print(f"   gh release upload {ref} harness-release-{ref}.yaml")
+    print("   # 2. Create the GitHub Release")
+    print(f'   gh release create {ref} --title {ref} --notes "Template release {ref}"')
+    print("   # 3. Generate the release manifest (written to git-ignored dist/)")
+    print(
+        f"   make harness-release-manifest VERSION={args.version} "
+        "PUBLISHED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    )
+    print("   # 4. Attach the manifest asset to the Release")
+    print(f"   gh release upload {ref} dist/harness-release-{ref}.yaml")
     return EXIT_OK
 
 
