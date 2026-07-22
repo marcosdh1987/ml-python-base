@@ -49,11 +49,26 @@ issue/PR provenance. It also runs `make check` and `make check-sync` unless
 
 1. Reconcile `pyproject.toml` and `CHANGELOG.md` to the target version.
 2. `make harness-release-check VERSION=X.Y.Z BASE_REF=<prev-tag>` — must pass.
-3. `make harness-release VERSION=X.Y.Z` — copy the printed commands.
-4. Run them manually: create and push the annotated `vX.Y.Z` tag, then
-   `gh release create`.
-5. `make harness-release-manifest VERSION=X.Y.Z PUBLISHED_AT=<iso8601>` and attach
-   the generated `harness-release-vX.Y.Z.yaml` to the GitHub Release.
+3. `make harness-release VERSION=X.Y.Z` — copy the printed commands. It prints the
+   exact, numbered sequence below.
+4. Run them manually:
+
+   ```bash
+   # 1. Create and push the immutable annotated tag
+   git tag -a vX.Y.Z -m "Template release vX.Y.Z"
+   git push origin vX.Y.Z
+   # 2. Create the GitHub Release
+   gh release create vX.Y.Z --title vX.Y.Z --notes "Template release vX.Y.Z"
+   # 3. Generate the release manifest (written to the git-ignored dist/)
+   make harness-release-manifest VERSION=X.Y.Z PUBLISHED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+   # 4. Attach the manifest asset to the Release
+   gh release upload vX.Y.Z dist/harness-release-vX.Y.Z.yaml
+   ```
+
+The manifest is generated under `dist/` (already git-ignored) so the release asset
+— which carries a self-referential commit SHA — is never accidentally committed.
+Delete any stray copy left in the repo root from an earlier run; the authoritative
+copy lives on the GitHub Release.
 
 The release manifest schema is `schemas/harness-release-v1.schema.json` (see
 `docs/../schemas`). The deprecated `make template-release` target — which used to
