@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -106,12 +106,27 @@ class Governance:
 
 
 @dataclass(frozen=True)
+class TemplateSyncPolicy:
+    """Versioned ownership boundary for downstream template synchronization.
+
+    Protocol ``0`` represents a legacy registry without explicit lifecycle
+    metadata. Governance paths may be applied selectively; platform paths are
+    inventory only and always require a separate, manually reviewed upgrade.
+    """
+
+    protocol: int = 0
+    governance_paths: tuple[str, ...] = ()
+    platform_paths: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class Registry:
     """The parsed declarative registry."""
 
     schema_version: int
     governance: Governance
     tools: tuple[ToolSpec, ...]
+    template_sync: TemplateSyncPolicy = field(default_factory=TemplateSyncPolicy)
 
     def tool(self, tool_id: str) -> ToolSpec:
         for spec in self.tools:

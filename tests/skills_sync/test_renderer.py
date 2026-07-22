@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from ml_python_base.skills_sync.discovery import discover_skills
 from ml_python_base.skills_sync.errors import SkillsSyncError
 from ml_python_base.skills_sync.models import Governance, Registry, ToolSpec
 from ml_python_base.skills_sync.renderer import (
@@ -71,3 +72,42 @@ def test_render_requires_sentinels(tmp_path: Path) -> None:
     registry = _registry()
     with pytest.raises(SkillsSyncError):
         render_tool(tmp_path, registry, registry.tools[0])
+
+
+def test_render_tool_accepts_an_explicit_skill_set(tmp_path: Path) -> None:
+    """Per-run experiments may override discovery without changing sources."""
+    _seed(tmp_path)
+    registry = _registry()
+    tool = registry.tools[0]
+    discovered = discover_skills(tmp_path)
+
+    assert [skill.name for skill in discovered] == ["alpha"]
+    assert render_tool(tmp_path, registry, tool, skills=[]) is True
+
+    body = (tmp_path / "DEMO.md").read_text(encoding="utf-8")
+    assert "- `alpha` — does alpha" not in body
+
+
+def test_render_tool_default_matches_discovered_skill_override(tmp_path: Path) -> None:
+    """Adding the override must keep the default output byte-identical."""
+    default_root = tmp_path / "default"
+    explicit_root = tmp_path / "explicit"
+    _seed(default_root)
+    _seed(explicit_root)
+    registry = _registry()
+    tool = registry.tools[0]
+
+    assert render_tool(default_root, registry, tool) is True
+    assert (
+        render_tool(
+            explicit_root,
+            registry,
+            tool,
+            skills=discover_skills(explicit_root),
+        )
+        is True
+    )
+
+    assert (default_root / "DEMO.md").read_bytes() == (
+        explicit_root / "DEMO.md"
+    ).read_bytes()
