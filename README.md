@@ -312,6 +312,16 @@ assessments of AI-assisted coding skill (and what a template can/can't influence
 This template uses **semver tags** (`vX.Y.Z`) + a CHANGELOG so downstream projects can pin
 to a specific version and adopt improvements incrementally.
 
+**Check the current version at a glance** — `make version` prints the `pyproject.toml`
+version (source of truth), the latest published tag, and whether a release is pending:
+
+```bash
+make version
+# 📦 pyproject version : 0.2.0
+# 🏷️  latest tag        : v0.2.0
+# ✅ v0.2.0 is published.
+```
+
 ### For maintainers of this template — cut a release
 
 Releases use the **traceable release contract**: a read-only preflight validates the

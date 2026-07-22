@@ -8,6 +8,19 @@
 
 HARNESS_RELEASE = uv run python scripts/harness_release.py
 
+# Show the current version at a glance: pyproject (source of truth), the latest
+# published tag, and whether the current version is already released or pending.
+version:
+	@ver=$$(grep -m1 '^version' pyproject.toml | sed -E 's/.*"(.*)".*/\1/'); \
+	tag=$$(git describe --tags --abbrev=0 2>/dev/null || echo "(none)"); \
+	echo "📦 pyproject version : $$ver"; \
+	echo "🏷️  latest tag        : $$tag"; \
+	if git rev-parse "v$$ver" >/dev/null 2>&1; then \
+		echo "✅ v$$ver is published."; \
+	else \
+		echo "⚠️  v$$ver is NOT tagged yet — release pending (see 'make harness-release VERSION=$$ver')."; \
+	fi
+
 # Classify governance vs platform changes since BASE_REF and recommend a bump.
 # Usage: make harness-change-summary BASE_REF=v0.1.0
 harness-change-summary:
@@ -62,5 +75,5 @@ harness-release:
 		$(if $(ALLOW_PLATFORM),--allow-platform,) \
 		$(if $(SKIP_GATES),--skip-gates,)
 
-.PHONY: harness-change-summary harness-platform-summary harness-release-check \
+.PHONY: version harness-change-summary harness-platform-summary harness-release-check \
 	harness-release-manifest harness-release
