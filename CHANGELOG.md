@@ -5,6 +5,20 @@ All notable changes to this template are documented here. The format is based on
 [Semantic Versioning](https://semver.org/). Downstream projects adopt a release with
 `make template-sync REF=vX.Y.Z` (see `docs/template-sync.md`).
 
+## [0.2.1]
+
+### Added
+- `make version` — prints the `pyproject.toml` version (source of truth), the latest
+  published tag, and whether a release is pending.
+- `make harness-change-summary` now prints the concrete next version
+  (`current → next`), not just the SemVer bump type.
+
+### Changed
+- Release manifests are written to the git-ignored `dist/` so the asset (which carries
+  a self-referential commit SHA) is never accidentally committed.
+- README: clearer, numbered "cut a release" flow with a concrete version example and a
+  "what goes where" table; the deprecated `make template-release` points to it.
+
 ## [0.2.0]
 
 ### Added

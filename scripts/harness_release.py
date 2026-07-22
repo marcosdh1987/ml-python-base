@@ -219,6 +219,16 @@ def recommend_bump(classification: Classification) -> str:
     return "patch"
 
 
+def bump_version(version: str, bump: str) -> str:
+    """Apply a SemVer bump to a MAJOR.MINOR.PATCH version string."""
+    major, minor, patch = parse_semver(version)
+    if bump == "major":
+        return f"{major + 1}.0.0"
+    if bump == "minor":
+        return f"{major}.{minor + 1}.0"
+    return f"{major}.{minor}.{patch + 1}"
+
+
 # --------------------------------------------------------------------------- #
 # Release preflight
 # --------------------------------------------------------------------------- #
@@ -563,12 +573,19 @@ def cmd_change_summary(args: argparse.Namespace) -> int:
         changed_paths(REPO_ROOT, args.base_ref), governance, platform
     )
     bump = recommend_bump(classification)
+    current = read_pyproject_version(REPO_ROOT)
+    next_version = bump_version(current, bump)
     print(f"📊 Change summary since {args.base_ref}:")
     print(f"   governance: {len(classification.governance)} path(s)")
     print(f"   platform:   {len(classification.platform)} path(s)")
     print(f"   other:      {len(classification.other)} path(s)")
     print(f"   removed:    {len(classification.removed)} path(s)")
-    print(f"👉 Recommended SemVer bump: {bump.upper()}")
+    print(
+        f"👉 Recommended bump: {bump.upper()}  (current {current} → next {next_version})"
+    )
+    print(
+        f"   Use this version in pyproject.toml, CHANGELOG.md, and the release: {next_version}"
+    )
     if classification.platform:
         print("   ⚠️  Platform paths changed — needs a separate reviewed PR/release.")
     return EXIT_OK
