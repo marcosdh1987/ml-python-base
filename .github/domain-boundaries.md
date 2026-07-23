@@ -35,3 +35,13 @@ When implementing tasks:
 
 - Change only files related to the requested scope.
 - Avoid cross-cutting refactors unless explicitly requested.
+
+## Verification Gate
+
+- Use one canonical verification command per hypothesis rather than a mix of
+  ad-hoc checks. Prefer `make check` as that canonical command.
+- Record the exact command and its exit status before declaring the hypothesis
+  confirmed or refuted.
+- Advance to the next step only after the verification gate exits green.
+- Do not substitute narrative assertions ("it should work", "this looks correct")
+  for a formal, executed check result.

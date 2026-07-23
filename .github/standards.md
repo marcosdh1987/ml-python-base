@@ -29,6 +29,20 @@ Primary commands:
 - `make check` — read-only quality gate (CI-safe).
 - `make ci` — full read-only pipeline (`check` + `check-sync`).
 
+### Retry and Malformed-Command Policy
+
+The **execution loop** is the agent's working iteration cycle: form hypothesis →
+run targeted command → interpret result → update hypothesis or advance.
+
+- Run each verification command once per hypothesis.
+- If a command fails, diagnose the failure before re-running it.
+- A truncated or malformed command (incomplete syntax, missing arguments) MUST NOT
+  be retried as-is; correct the command before retrying. Repeated identical
+  malformed retries are a **workflow failure signal** (the agent is thrashing) and
+  require the execution loop to pause for diagnosis before continuing.
+- Do not repeat read-only inspection commands (file reads, grep, etc.) unless the
+  working hypothesis has changed since the last run.
+
 ## Code Quality
 
 - Enforce type hints whenever practical; `make typecheck` runs `mypy`.

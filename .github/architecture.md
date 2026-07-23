@@ -37,3 +37,19 @@ When a generation request is ambiguous:
 - Choose the simplest architecture-compatible solution.
 - Preserve existing project style and naming.
 - Minimize file churn and unrelated refactors.
+
+## First-Pass Discipline
+
+Before generating code or a plan for any non-trivial task:
+
+1. Read the three core governance files in one pass:
+   - `.github/architecture.md`
+   - `.github/standards.md`
+   - `.github/domain-boundaries.md`
+2. Write a short hypothesis (one to three sentences) stating the root cause,
+   the minimal change required, and the expected verification outcome.
+3. Do not begin editing files until the hypothesis is written.
+4. Re-read a governance file only if the hypothesis changes. Repeated reads of the
+   same file without a hypothesis update are a **workflow failure signal** — a sign
+   that the agent is thrashing rather than progressing. When this occurs, stop,
+   revise the hypothesis, and proceed with a fresh targeted action.
