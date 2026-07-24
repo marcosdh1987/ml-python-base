@@ -3,6 +3,28 @@
 > Non-obvious facts discovered while working: gotchas, why-it-is-this-way, dead ends
 > to avoid. Append new entries at the top. One fact per entry.
 
+## Governed workflow hardened from harness audit evidence (issue #35) — 2026-07-24
+
+The three core governance docs (`.github/architecture.md`, `standards.md`,
+`domain-boundaries.md`) were tightened to close five recurring failure patterns
+found across a batch of agent runs (Claude harness × Haiku/Opus, cases:
+tetris-v1 + several qutebrowser/ansible/openlibrary instances). The added rules:
+(1) a concrete pre-edit plan stating fix + files/symbols + verification target;
+(2) a mandatory `memory/` + governance read *before* the first edit; (3) a
+mandatory reproduce→isolate→hypothesize→fix→verify loop for bug fixes; (4) run
+the narrowest relevant target test first, with syntax/manual only as supplements;
+(5) a deterministic edge-case recipe for stateful flows (game-over/restart) plus
+no lateral git/setup chores at branch finishing.
+
+**Why it matters:** this is the baseline for the *next* improvement-cycle run. If
+the changes worked, re-running the same cases through the harness should surface
+fewer (ideally zero) proposals on these patterns; any that reappear mark what did
+not get internalized.
+**How to apply:** before re-running the cycle, diff current governance against this
+entry's date. When auditing a new run, check these five behaviors first — they are
+the known-weak spots. Source evidence: HEP-2026-000 →
+`marcosdh1987/ml-python-base#35`.
+
 ## Claude Code gateway model names must match native alias resolution — 2026-07-07
 
 Claude Code reads the generated `.claude/agents/*.md` `model:` frontmatter for

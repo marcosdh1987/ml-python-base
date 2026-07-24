@@ -42,14 +42,20 @@ When a generation request is ambiguous:
 
 Before generating code or a plan for any non-trivial task:
 
-1. Read the three core governance files in one pass:
+1. Read the three core governance files in one pass, then the repository memory:
    - `.github/architecture.md`
    - `.github/standards.md`
    - `.github/domain-boundaries.md`
-2. Write a short hypothesis (one to three sentences) stating the root cause,
-   the minimal change required, and the expected verification outcome.
-3. Do not begin editing files until the hypothesis is written.
-4. Re-read a governance file only if the hypothesis changes. Repeated reads of the
-   same file without a hypothesis update are a **workflow failure signal** — a sign
+   - `memory/context.md` and `memory/learnings.md` (prior context and gotchas)
+
+   This governance-and-memory read is mandatory and must happen before the first
+   edit, not after it.
+2. Write a short plan (one to three sentences) before touching any file. It MUST
+   state: the intended fix or root cause, the specific files or symbols to inspect
+   or modify, and the exact verification step — the target test or command that
+   will confirm the change.
+3. Do not begin editing files until the plan is written.
+4. Re-read a governance or memory file only if the plan changes. Repeated reads of
+   the same file without a plan update are a **workflow failure signal** — a sign
    that the agent is thrashing rather than progressing. When this occurs, stop,
-   revise the hypothesis, and proceed with a fresh targeted action.
+   revise the plan, and proceed with a fresh targeted action.

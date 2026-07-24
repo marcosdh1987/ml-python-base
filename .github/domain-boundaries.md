@@ -38,10 +38,17 @@ When implementing tasks:
 
 ## Verification Gate
 
-- Use one canonical verification command per hypothesis rather than a mix of
-  ad-hoc checks. Prefer `make check` as that canonical command.
+- For changed behavior, run the **narrowest relevant target test** first (a focused
+  `pytest` selecting the affected test), then `make check` as the broader canonical
+  gate. Syntax checks or manual reasoning only supplement executed tests — they
+  never replace them.
 - Record the exact command and its exit status before declaring the hypothesis
   confirmed or refuted.
+- For stateful or edge-case behavior (e.g. game-over/restart or other state
+  transitions), the verify step MUST include a deterministic recipe that forces the
+  specific state transition and confirms recovery. Do not rely on a generic smoke
+  input that never reaches the failure mode; treat this recipe as part of the
+  normal verify step, not an optional extra.
 - Advance to the next step only after the verification gate exits green.
 - Do not substitute narrative assertions ("it should work", "this looks correct")
   for a formal, executed check result.
