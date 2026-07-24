@@ -90,6 +90,49 @@ Before finalizing generated work:
 3. Data flow respects raw vs processed boundaries.
 4. Implementation changes include/update documentation under `docs/`.
 
+## Release Discipline
+
+Releases of this template are manual and traceable. The tooling
+(`scripts/harness_release.py`, `make/harness.mk`) validates and prints commands; it
+never commits, tags, pushes, or publishes. Full policy:
+`docs/harness-release-lifecycle.md`.
+
+**The tag is the last step, never the first.** The mandatory order is:
+
+1. Derive the version — `make harness-change-summary BASE_REF=<latest-tag>`. Never
+   invent the number; the tool prints it.
+2. Reconcile that one number in `pyproject.toml` and `CHANGELOG.md`, then merge to
+   `main`.
+3. `make harness-release-check VERSION=X.Y.Z BASE_REF=<prev-tag>` — must exit green.
+4. Only then run the printed `git tag` / `git push` / `gh release` commands.
+
+Rules an agent MUST follow:
+
+- Never create or push a tag before the preflight passes. `make harness-release`
+  **prints** the tag command — printing is not executing.
+- A published tag is immutable. Never `git tag -f`, never `git push --force` a tag,
+  never delete a tag that already has a GitHub Release or a downstream consumer.
+- Never edit `pyproject.toml` or `CHANGELOG.md` to match a tag that already exists.
+  That inverts the source of truth: the files define the version, the tag records it.
+- Preflight failures are preconditions, not obstacles to bypass. Do not reach for
+  `SKIP_GATES=1` to make a red preflight green; it skips `make check` only, and the
+  precondition problems remain.
+- `pyproject.toml` and `uv.lock` are platform paths, so the version bump itself always
+  reports `platform_change` when `BASE_REF` is passed. Before using `ALLOW_PLATFORM=1`,
+  run `make harness-platform-summary BASE_REF=<prev-tag>` and confirm the list contains
+  **only** those two files. Anything else is a real platform change and needs its own
+  reviewed PR with a migration note.
+
+Recovering from a tag created too early — a tag whose commit does not carry the
+matching `pyproject.toml` version — depends on whether it was published:
+
+- **No GitHub Release, no downstream consumer**: the tag is untracked noise. Delete
+  it locally and on the remote (`git tag -d vX.Y.Z` and
+  `git push origin :refs/tags/vX.Y.Z`), then restart the order above. Deleting a
+  remote tag is outward-facing: confirm with the maintainer before running it.
+- **Already published or consumed**: leave it. Reconcile the files to the next
+  version and release that instead.
+
 ## Branch Finishing
 
 When finishing a branch, keep the work scoped to the task. Do not spend

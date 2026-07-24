@@ -299,7 +299,11 @@ assessments of AI-assisted coding skill (and what a template can/can't influence
 | `make template-remote-setup` | Add or update the template upstream remote |
 | `make template-sync` | Selective governance sync from a semver tag (recommended) |
 | `make template-sync PREVIEW=1` | Preview the governance diff without applying |
-| `make template-release VERSION=x` | Tag a semver release of this template |
+| `make version` | Show the current version, the latest tag, and whether a release is pending |
+| `make harness-change-summary BASE_REF=vX.Y.Z` | Classify changes and print the next version number |
+| `make harness-release-check VERSION=x` | Read-only release preflight (never tags) |
+| `make harness-release VERSION=x` | Preflight + **print** the manual tag/publish commands |
+| `make template-release VERSION=x` | Deprecated — refuses to run; use `make harness-release` |
 | `make template-sync-preview` | Fetch template changes and preview incoming commits |
 | `make template-sync-merge` | Merge full template branch into current branch |
 | `make template-sync-rebase` | Rebase current branch onto full template branch |
@@ -328,6 +332,16 @@ Releases are **manual and traceable**: the tooling validates and prints commands
 never commits, tags, pushes, or publishes (`make template-release` is deprecated and
 points here). Everything below uses **one version number** — and you don't invent it,
 the tooling tells you.
+
+> ⚠️ **The tag is the LAST step, never the first.**
+> The version lives in `pyproject.toml` and `CHANGELOG.md`; the tag only *records* a
+> commit that already carries it. Tag before Step 2 and the preflight rejects the
+> release — correctly, because a published tag is never moved.
+>
+> Do the three steps in order: **① get the number → ② put it in the two files and merge
+> → ③ tag and publish.**
+
+
 
 #### Step 1 — Get the next version number
 
@@ -368,6 +382,51 @@ gh release upload v0.2.1 dist/harness-release-v0.2.1.yaml
 match the version, the tag is new, and the tree is clean — so if Step 2 was skipped it
 stops you with a clear message. Full policy and provenance flags:
 [docs/harness-release-lifecycle.md](docs/harness-release-lifecycle.md).
+
+#### If the preflight fails
+
+Each code names a precondition. Fix the precondition — never bypass the check
+(`SKIP_GATES=1` skips `make check` only; these problems stay).
+
+| Code | What it means | Fix |
+|---|---|---|
+| `version_mismatch` | `pyproject.toml` still holds the old version | Do Step 2: set `version = "X.Y.Z"` |
+| `changelog_missing` | No `## [X.Y.Z]` section in `CHANGELOG.md` | Do Step 2: add the section at the top |
+| `tag_exists` | The tag was created before Steps 1–2 | See below — never move a published tag |
+| `dirty_tree` | Uncommitted changes | Commit or stash, then re-run |
+| `platform_change` | The release touches platform paths | See the note below; otherwise split into a separate reviewed PR |
+| `invalid_semver` | `VERSION` is not `MAJOR.MINOR.PATCH` | Use the number from Step 1 |
+
+**About `platform_change`** — `pyproject.toml` and `uv.lock` are platform paths, and the
+Step 2 bump necessarily touches both. So *every* release reports `platform_change` when
+you pass `BASE_REF`. If the bump is the only platform change, that is expected:
+
+```bash
+make harness-platform-summary BASE_REF=v0.2.1   # confirm it lists ONLY pyproject.toml + uv.lock
+make harness-release-check VERSION=0.3.0 BASE_REF=v0.2.1 ALLOW_PLATFORM=1
+```
+
+If anything else appears in that list (the sync engine, `Makefile`, `registry.toml`), it
+is a real platform change: split it into its own reviewed PR with a migration note.
+
+**Recovering from `tag_exists`** — you tagged too early, so the tag points at a commit
+that does not carry the version. Never fix this by editing the files to match the tag;
+that inverts the source of truth. Check whether it was actually published:
+
+```bash
+gh release list          # is there a Release for vX.Y.Z?
+```
+
+- **No Release and no downstream consumer** — the tag is noise. Delete it and restart
+  at Step 2:
+
+  ```bash
+  git tag -d vX.Y.Z
+  git push origin :refs/tags/vX.Y.Z
+  ```
+
+- **Already published or adopted downstream** — leave it alone. Reconcile the two files
+  to the *next* version and release that one instead.
 
 ### For downstream projects — adopt a release
 

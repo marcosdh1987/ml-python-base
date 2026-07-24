@@ -5,6 +5,43 @@ All notable changes to this template are documented here. The format is based on
 [Semantic Versioning](https://semver.org/). Downstream projects adopt a release with
 `make template-sync REF=vX.Y.Z` (see `docs/template-sync.md`).
 
+## [0.3.0]
+
+### Added
+- **First-pass discipline** (`.github/architecture.md`): a mandatory governance and
+  memory read, followed by an explicit written plan — intended fix, files or symbols
+  in scope, and the exact verification command — before the first edit. Repeated
+  reads of the same file without a plan update are a workflow failure signal.
+- **Verification gate** (`.github/domain-boundaries.md`): the narrowest relevant
+  target test runs before `make check`; stateful and edge-case behavior requires a
+  deterministic recipe that forces the transition. Narrative assertions never
+  substitute for an executed check.
+- **Retry and malformed-command policy** (`.github/standards.md`): one run per
+  hypothesis, diagnose before re-running, and never retry a malformed command as-is.
+- **Bug-fix discipline** (`.github/standards.md`): the explicit reproduce → isolate →
+  hypothesize → fix → verify loop, carried by the `systematic_debugging` skill.
+- **Branch finishing scope rule** (`.github/standards.md`): lateral setup work during
+  branch finishing is a scope leak and is deferred or raised separately.
+- **Release discipline** (`.github/standards.md`): the tag is the last step, never the
+  first; a published tag is immutable; the files define the version and the tag only
+  records it. Includes the recovery path for a tag created too early, so an agent
+  driving a release cannot invert the order.
+- README: a preflight troubleshooting table mapping every failure code
+  (`version_mismatch`, `changelog_missing`, `tag_exists`, `dirty_tree`,
+  `platform_change`, `invalid_semver`) to its cause and fix, plus the `tag_exists`
+  recovery procedure.
+- `docs/harness-release-lifecycle.md`: a "Recovering from a premature tag" section, an
+  explicit note that pre-release (`-rc.N`) tags are outside the contract, and the rule
+  that the version bump always trips `platform_change` — so `ALLOW_PLATFORM=1` is
+  justified only when `pyproject.toml` and `uv.lock` are the entire platform delta.
+
+### Changed
+- The pre-finalization checklist now requires the focused target test to have run and
+  passed, not just "relevant quality checks".
+- README command table: the release row no longer advertises the deprecated
+  `make template-release` as the way to tag; it lists the `harness-*` targets and marks
+  `template-release` as deprecated.
+
 ## [0.2.1]
 
 ### Added

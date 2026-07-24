@@ -47,6 +47,11 @@ issue/PR provenance. It also runs `make check` and `make check-sync` unless
 
 ## Publishing a release (manual)
 
+The tag is the **last** step. `pyproject.toml` and `CHANGELOG.md` define the version;
+the tag only records a commit that already carries it. Creating the tag first inverts
+that relationship and the preflight will reject the release — by design, since a
+published tag is never moved.
+
 1. Reconcile `pyproject.toml` and `CHANGELOG.md` to the target version.
 2. `make harness-release-check VERSION=X.Y.Z BASE_REF=<prev-tag>` — must pass.
 3. `make harness-release VERSION=X.Y.Z` — copy the printed commands. It prints the
@@ -73,6 +78,49 @@ copy lives on the GitHub Release.
 The release manifest schema is `schemas/harness-release-v1.schema.json` (see
 `docs/../schemas`). The deprecated `make template-release` target — which used to
 auto-commit and auto-tag — now refuses to run and points here.
+
+## The version bump is always a platform change
+
+`pyproject.toml` and `uv.lock` are listed under `platform_paths` in
+`adapters/registry.toml`, and step 1 of a release necessarily edits them. Every release
+therefore reports `platform_change` when `BASE_REF` is passed. Verify the scope before
+overriding:
+
+```bash
+make harness-platform-summary BASE_REF=<prev-tag>   # expect ONLY pyproject.toml + uv.lock
+make harness-release-check VERSION=X.Y.Z BASE_REF=<prev-tag> ALLOW_PLATFORM=1
+```
+
+`ALLOW_PLATFORM=1` is justified only when the bump is the entire platform delta. Any
+other platform path in that list is a genuine platform change and belongs in a separate
+reviewed PR with a migration note.
+
+## Recovering from a premature tag
+
+A tag created before step 1 points at a commit whose `pyproject.toml` still holds the
+previous version, so the preflight reports `tag_exists` alongside `version_mismatch`
+and `changelog_missing`. All three share one cause: the tag ran ahead of the files.
+
+Never resolve this by editing the files to match the tag. The recovery depends on
+whether the tag was actually published (`gh release list`):
+
+- **No GitHub Release and no downstream consumer** — the tag carries no contract yet.
+  Delete it locally and on the remote, then restart at step 1:
+
+  ```bash
+  git tag -d vX.Y.Z
+  git push origin :refs/tags/vX.Y.Z
+  ```
+
+  Deleting a remote tag is a repository-boundary operation: a human confirms and runs
+  it, like every other publication step in this contract.
+
+- **Already published or adopted downstream** — the tag is immutable. Leave it, and
+  reconcile the files to the next version instead.
+
+Pre-release tags (`vX.Y.Z-rc.N`) are outside this contract: the preflight, the sync
+engine, and `make version` all expect plain `vX.Y.Z`. Avoid them, and clean up any
+that exist so `git describe` stays meaningful.
 
 ## Proposing a change
 
