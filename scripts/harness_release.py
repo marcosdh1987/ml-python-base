@@ -5,11 +5,17 @@ This script never mutates git. It validates that a release is coherent, classifi
 governance vs. platform changes, recommends a SemVer bump, generates the release
 manifest asset (after the tag exists), and prints the exact manual commands an
 operator runs to tag and publish. Tagging, pushing, and Release publication stay
-manual — this tool only prepares and verifies.
+manual — this tool only prepares and verifies. The single exception to "read-only"
+is `prepare`, which performs the mechanical Step-2 file edits (pyproject.toml and
+CHANGELOG.md) locally, exactly like `make fix` mutates the tree locally.
 
 Subcommands:
     change-summary    --base-ref REF        Classify changes and recommend a bump.
     platform-summary  --base-ref REF        Report platform changes + migration need.
+    prepare           [--version X.Y.Z]     Step 2: write the version into
+                                            pyproject.toml + scaffold the CHANGELOG
+                                            section (the only file-mutating command;
+                                            git stays untouched).
     release-check     --version X.Y.Z       Read-only release preflight.
     release-manifest  --version X.Y.Z       Generate the release asset after tagging.
     release           --version X.Y.Z       Preflight + print manual tag/release steps.
@@ -227,6 +233,113 @@ def bump_version(version: str, bump: str) -> str:
     if bump == "minor":
         return f"{major}.{minor + 1}.0"
     return f"{major}.{minor}.{patch + 1}"
+
+
+# --------------------------------------------------------------------------- #
+# Release preparation (Step 2) — the only file-mutating subcommand.
+# Writes the new version into pyproject.toml and scaffolds the CHANGELOG
+# section. Git stays untouched: branching, committing, and the PR are manual.
+# --------------------------------------------------------------------------- #
+
+
+def latest_tag(root: Path, runner=run) -> str | None:
+    """Return the most recent reachable tag (e.g. 'v0.3.0'), or None."""
+    out = runner(
+        ["git", "describe", "--tags", "--abbrev=0"], root, check=False, capture=True
+    ).stdout.strip()
+    return out or None
+
+
+def collect_commit_subjects(root: Path, base_ref: str, runner=run) -> list[str]:
+    """Subject lines of non-merge commits in base_ref..HEAD, oldest first."""
+    out = runner(
+        ["git", "log", "--reverse", "--no-merges", "--format=%s", f"{base_ref}..HEAD"],
+        root,
+        check=False,
+        capture=True,
+    ).stdout
+    return [line.strip() for line in out.splitlines() if line.strip()]
+
+
+def update_pyproject_version(root: Path, new_version: str) -> None:
+    """Rewrite the [project] version line in pyproject.toml."""
+    path = root / "pyproject.toml"
+    text = path.read_text(encoding="utf-8")
+    current = read_pyproject_version(root)
+    old_line = f'version = "{current}"'
+    if old_line not in text:
+        raise ReleaseError(
+            f"Could not find '{old_line}' in pyproject.toml.", EXIT_PRECONDITION
+        )
+    path.write_text(
+        text.replace(old_line, f'version = "{new_version}"', 1), encoding="utf-8"
+    )
+
+
+def insert_changelog_section(root: Path, version: str, bullets: list[str]) -> None:
+    """Insert a '## [version]' section above the first existing section."""
+    path = root / "CHANGELOG.md"
+    text = path.read_text(encoding="utf-8")
+    if changelog_has_section(root, version):
+        raise ReleaseError(
+            f"CHANGELOG.md already has a '## [{version}]' section.", EXIT_PRECONDITION
+        )
+    lines = bullets or ["TODO: describe the changes in this release."]
+    body = "\n".join(f"- {line}" for line in lines)
+    section = f"## [{version}]\n\n### Changed\n{body}\n\n"
+    match = re.search(r"^## \[", text, flags=re.M)
+    if match is None:
+        # First release: append the section at the end of the intro.
+        path.write_text(text.rstrip() + "\n\n" + section, encoding="utf-8")
+        return
+    idx = match.start()
+    path.write_text(text[:idx] + section + text[idx:], encoding="utf-8")
+
+
+def prepare_release(
+    root: Path, version: str | None, base_ref: str | None, runner=run
+) -> str:
+    """Validate, resolve the target version, and mutate the two files.
+
+    Returns the resolved version. Raises ReleaseError before any mutation if a
+    precondition fails — the two files are only written together.
+    """
+    current = read_pyproject_version(root)
+    base = base_ref or latest_tag(root, runner)
+
+    if version is None:
+        if base is None:
+            raise ReleaseError(
+                "No VERSION given and no tag found to derive one from. "
+                "Pass VERSION=X.Y.Z explicitly.",
+                EXIT_PRECONDITION,
+            )
+        governance, platform, _ = load_sync_policy(root)
+        classification = classify_paths(
+            changed_paths(root, base, runner), governance, platform
+        )
+        version = bump_version(current, recommend_bump(classification))
+
+    if parse_semver(version) <= parse_semver(current):
+        raise ReleaseError(
+            f"Requested version '{version}' is not above the current "
+            f"pyproject version '{current}'.",
+            EXIT_PRECONDITION,
+        )
+    if tag_exists(root, version, runner):
+        raise ReleaseError(
+            f"Tag 'v{version}' already exists; a published tag is never moved.",
+            EXIT_PRECONDITION,
+        )
+    if changelog_has_section(root, version):
+        raise ReleaseError(
+            f"CHANGELOG.md already has a '## [{version}]' section.", EXIT_PRECONDITION
+        )
+
+    bullets = collect_commit_subjects(root, base, runner) if base else []
+    update_pyproject_version(root, version)
+    insert_changelog_section(root, version, bullets)
+    return version
 
 
 # --------------------------------------------------------------------------- #
@@ -700,6 +813,29 @@ def cmd_release(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_prepare(args: argparse.Namespace) -> int:
+    version = prepare_release(REPO_ROOT, args.version, args.base_ref)
+    ref = f"v{version}"
+    branch = f"release/{ref}"
+    print(f"✅ Prepared release {version} (Step 2):")
+    print(f'   · pyproject.toml     -> version = "{version}"')
+    print(
+        f"   · CHANGELOG.md       -> new '## [{version}]' section (edit the bullets!)"
+    )
+    print("\n📝 Review the CHANGELOG bullets — they are raw commit subjects, turn")
+    print("   them into human release notes. Then ship the bump:")
+    print(f"   git switch -c {branch}")
+    print("   git add pyproject.toml CHANGELOG.md uv.lock")
+    print(
+        f'   git commit -m "chore(release): reconcile version and changelog for {version}"'
+    )
+    print(f"   git push -u origin {branch}")
+    print(f'   gh pr create --title "chore(release): {version}" \\')
+    print(f'       --body "Version bump + changelog for {ref}."')
+    print(f"\n   After the merge: make harness-release VERSION={version}   (Step 3)")
+    return EXIT_OK
+
+
 def _add_provenance_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--proposal", action="append", help="Proposal ID (repeatable).")
     parser.add_argument(
@@ -741,6 +877,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     rm.add_argument("--migration", default=None, help="Migration document path/URL.")
     _add_provenance_args(rm)
     rm.set_defaults(func=cmd_release_manifest)
+
+    pp = sub.add_parser(
+        "prepare", help="Step 2: write version into pyproject + CHANGELOG (local-only)."
+    )
+    pp.add_argument(
+        "--version", default=None, help="Target X.Y.Z; default: recommended bump."
+    )
+    pp.add_argument("--base-ref", default=None, help="Base tag; default: latest tag.")
+    pp.set_defaults(func=cmd_prepare)
 
     rl = sub.add_parser("release", help="Preflight + print manual publish steps.")
     rl.add_argument("--version", required=True)

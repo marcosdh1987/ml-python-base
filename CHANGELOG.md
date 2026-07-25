@@ -5,6 +5,28 @@ All notable changes to this template are documented here. The format is based on
 [Semantic Versioning](https://semver.org/). Downstream projects adopt a release with
 `make template-sync REF=vX.Y.Z` (see `docs/template-sync.md`).
 
+## [0.4.0]
+
+### Added
+- **Subagent handoff contract** (`.github/orchestration.md`): delegation is a closed
+  loop — bound a discrete subproblem, delegate it, receive an explicit inspectable
+  result, and merge it into the plan before advancing. Task-create/task-update activity
+  is bookkeeping, not delegation; includes positive/negative examples and the degraded
+  runtime fallback (HEP-2026-000, #37, PR #38).
+- **Resumable execution and checkpointing** (`.github/orchestration.md`): checkpoint
+  each verified milestone (milestone, plan position, green gates); resume from the last
+  confirmed checkpoint after a session or transport drop; a checkpoint is valid only
+  once its gate is green, and unrecorded progress is re-verified on resume.
+- **Operating discipline rules 10–11** (`.github/sdlc.md`): delegate-as-closed-loop and
+  checkpoint-verified-milestones, plus run-trace anchors — a per-phase checkpoint line
+  (the resume anchor) and a per-delegation subproblem → result → merge record.
+- **`make new-version [VERSION=X.Y.Z]`** — Step 2 of the release flow in one command:
+  writes the version into `pyproject.toml`, scaffolds the `## [X.Y.Z]` CHANGELOG section
+  from the commit subjects since the last tag, refreshes `uv.lock`, and prints the
+  branch/commit/PR commands (`prepare` subcommand in `scripts/harness_release.py`).
+  File-mutating but git-untouched; refuses non-increasing versions, existing tags, and
+  duplicate CHANGELOG sections.
+
 ## [0.3.0]
 
 ### Added
