@@ -21,6 +21,19 @@ version:
 		echo "⚠️  v$$ver is NOT tagged yet — release pending (see 'make harness-release VERSION=$$ver')."; \
 	fi
 
+# Step 2 in one command: write VERSION into pyproject.toml, scaffold the
+# CHANGELOG section from the commits since the last tag, refresh uv.lock, and
+# print the branch/commit/PR commands. Mutates FILES only — git stays manual.
+# Usage: make new-version [VERSION=0.4.0] [BASE_REF=v0.3.0]
+#        (no VERSION: uses the recommended bump since the latest tag)
+new-version:
+	@$(HARNESS_RELEASE) prepare \
+		$(if $(VERSION),--version $(VERSION),) \
+		$(if $(BASE_REF),--base-ref $(BASE_REF),)
+	@echo "🔒 Refreshing uv.lock..."
+	@uv lock -q
+	@echo "✅ uv.lock refreshed."
+
 # Classify governance vs platform changes since BASE_REF and recommend a bump.
 # Usage: make harness-change-summary BASE_REF=v0.1.0
 harness-change-summary:
@@ -75,5 +88,5 @@ harness-release:
 		$(if $(ALLOW_PLATFORM),--allow-platform,) \
 		$(if $(SKIP_GATES),--skip-gates,)
 
-.PHONY: version harness-change-summary harness-platform-summary harness-release-check \
-	harness-release-manifest harness-release
+.PHONY: version new-version harness-change-summary harness-platform-summary \
+	harness-release-check harness-release-manifest harness-release

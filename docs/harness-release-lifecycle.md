@@ -34,6 +34,7 @@ The governance/platform allowlist and the sync `protocol` live in
 | Target | Purpose |
 |---|---|
 | `make harness-change-summary BASE_REF=v0.1.0` | Classify changes; recommend a bump. |
+| `make new-version [VERSION=X.Y.Z] [BASE_REF=…]` | Step 2 in one command: write the version into `pyproject.toml`, scaffold the CHANGELOG section from the commits since the last tag, refresh `uv.lock`. File-mutating but git-untouched; refuses non-increasing versions, existing tags, and duplicate CHANGELOG sections. |
 | `make harness-platform-summary BASE_REF=v0.1.0` | Report platform changes + migration need. |
 | `make harness-release-check VERSION=0.2.0 [BASE_REF=…] [PROPOSAL=…] [ISSUE=…] [PR=…] [REQUIRE_PROVENANCE=1] [ALLOW_PLATFORM=1] [SKIP_GATES=1]` | Read-only preflight. |
 | `make harness-release VERSION=0.2.0` | Preflight + print the manual tag/publish steps. |
@@ -52,7 +53,9 @@ the tag only records a commit that already carries it. Creating the tag first in
 that relationship and the preflight will reject the release — by design, since a
 published tag is never moved.
 
-1. Reconcile `pyproject.toml` and `CHANGELOG.md` to the target version.
+1. Reconcile `pyproject.toml` and `CHANGELOG.md` to the target version —
+   `make new-version [VERSION=X.Y.Z]` does the mechanical edits (then curate the
+   generated CHANGELOG bullets and merge the bump via PR).
 2. `make harness-release-check VERSION=X.Y.Z BASE_REF=<prev-tag>` — must pass.
 3. `make harness-release VERSION=X.Y.Z` — copy the printed commands. It prints the
    exact, numbered sequence below.

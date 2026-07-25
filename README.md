@@ -301,6 +301,7 @@ assessments of AI-assisted coding skill (and what a template can/can't influence
 | `make template-sync PREVIEW=1` | Preview the governance diff without applying |
 | `make version` | Show the current version, the latest tag, and whether a release is pending |
 | `make harness-change-summary BASE_REF=vX.Y.Z` | Classify changes and print the next version number |
+| `make new-version [VERSION=x]` | Step 2 in one command: bump `pyproject.toml` + scaffold CHANGELOG + refresh `uv.lock` |
 | `make harness-release-check VERSION=x` | Read-only release preflight (never tags) |
 | `make harness-release VERSION=x` | Preflight + **print** the manual tag/publish commands |
 | `make template-release VERSION=x` | Deprecated — refuses to run; use `make harness-release` |
@@ -357,12 +358,28 @@ it as the `VERSION` everywhere below (this example uses `0.2.1`).
 
 #### Step 2 — Put that number in two files, then PR + merge
 
-| File | What to change |
-|---|---|
-| `pyproject.toml` | `version = "0.2.1"` |
-| `CHANGELOG.md` | add a `## [0.2.1]` section at the top, listing the changes |
+One command does the mechanical part — writes the version into `pyproject.toml`,
+scaffolds the `## [X.Y.Z]` CHANGELOG section from the commits since the last tag, and
+refreshes `uv.lock`:
 
-Commit on a branch, open a PR, and merge to `main`.
+```bash
+make new-version VERSION=0.2.1    # or just `make new-version` to take the recommended bump
+```
+
+Then **edit the CHANGELOG bullets** (they start as raw commit subjects — turn them into
+human release notes) and ship the bump with the commands the tool printed:
+
+```bash
+git switch -c release/v0.2.1
+git add pyproject.toml CHANGELOG.md uv.lock
+git commit -m "chore(release): reconcile version and changelog for 0.2.1"
+git push -u origin release/v0.2.1
+gh pr create --title "chore(release): 0.2.1" --body "Version bump + changelog for v0.2.1."
+```
+
+Merge the PR to `main`. (`make new-version` mutates the two files locally, like
+`make fix` — git, the PR, and the merge stay yours. It refuses to run if the version
+doesn't increase, the tag already exists, or the CHANGELOG section is already there.)
 
 #### Step 3 — Publish (after the merge)
 

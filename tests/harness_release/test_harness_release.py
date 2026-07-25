@@ -344,6 +344,82 @@ def test_check_release_clean_pass(repo: Path) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# Release preparation (prepare / Step 2)
+# --------------------------------------------------------------------------- #
+
+
+def test_prepare_release_explicit_version(repo: Path) -> None:
+    version = hr.prepare_release(repo, "0.3.0", None)
+    assert version == "0.3.0"
+    assert hr.read_pyproject_version(repo) == "0.3.0"
+    text = (repo / "CHANGELOG.md").read_text(encoding="utf-8")
+    # New section sits above the previous one.
+    assert text.index("## [0.3.0]") < text.index("## [0.2.0]")
+
+
+def test_prepare_release_derives_version_and_bullets(repo: Path) -> None:
+    _git(repo, "tag", "-a", "v0.2.0", "-m", "r")
+    _write(repo, ".github/architecture.md", "# Architecture\nv2\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "feat(governance): tighten the rules")
+    version = hr.prepare_release(repo, None, None)
+    # Governance-only change since v0.2.0 → recommended MINOR bump.
+    assert version == "0.3.0"
+    text = (repo / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert "- feat(governance): tighten the rules" in text
+
+
+def test_prepare_release_rejects_non_increasing(repo: Path) -> None:
+    for bad in ("0.2.0", "0.1.9"):
+        with pytest.raises(hr.ReleaseError) as exc:
+            hr.prepare_release(repo, bad, None)
+        assert exc.value.exit_code == hr.EXIT_PRECONDITION
+
+
+def test_prepare_release_rejects_existing_tag_without_mutating(repo: Path) -> None:
+    _git(repo, "tag", "-a", "v0.3.0", "-m", "r")
+    with pytest.raises(hr.ReleaseError) as exc:
+        hr.prepare_release(repo, "0.3.0", None)
+    assert exc.value.exit_code == hr.EXIT_PRECONDITION
+    # Precondition failures must leave both files untouched.
+    assert hr.read_pyproject_version(repo) == "0.2.0"
+    assert not hr.changelog_has_section(repo, "0.3.0")
+
+
+def test_prepare_release_rejects_existing_changelog_section(repo: Path) -> None:
+    with pytest.raises(hr.ReleaseError) as exc:
+        hr.prepare_release(repo, "0.2.0", None)  # section [0.2.0] already exists
+    assert exc.value.exit_code == hr.EXIT_PRECONDITION
+
+
+def test_prepare_release_no_version_no_tag_errors(repo: Path) -> None:
+    with pytest.raises(hr.ReleaseError) as exc:
+        hr.prepare_release(repo, None, None)
+    assert exc.value.exit_code == hr.EXIT_PRECONDITION
+
+
+def test_prepare_release_placeholder_bullet_without_base(repo: Path) -> None:
+    hr.prepare_release(repo, "0.3.0", None)  # no tags → no commit bullets
+    text = (repo / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert "- TODO: describe the changes in this release." in text
+
+
+def test_cli_prepare(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(hr, "REPO_ROOT", repo)
+    rc = hr.main(["prepare", "--version", "0.3.0"])
+    assert rc == hr.EXIT_OK
+    assert hr.read_pyproject_version(repo) == "0.3.0"
+
+
+def test_cli_prepare_precondition_exit_code(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(hr, "REPO_ROOT", repo)
+    rc = hr.main(["prepare", "--version", "0.1.0"])
+    assert rc == hr.EXIT_PRECONDITION
+
+
+# --------------------------------------------------------------------------- #
 # Release manifest + schema
 # --------------------------------------------------------------------------- #
 
