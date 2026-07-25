@@ -59,6 +59,15 @@ These rules apply to any agent (any tool) executing a non-trivial coding task.
 9. **Stay in scope.** For task- or benchmark-scoped work, edit only inside the
    requested directory unless the user authorizes repository-level changes. If a
    change outside scope seems necessary, stop and explain why before editing.
+10. **Delegate as a closed loop.** When you use subagents, follow the Subagent Handoff
+    Contract in `.github/orchestration.md`: bound the subproblem, delegate, wait for an
+    explicit result, and merge it into the plan before advancing. Task bookkeeping
+    without a received result and a visible merge is not delegation and is not progress.
+11. **Checkpoint verified milestones.** After each phase gate goes green, record a
+    checkpoint (completed milestone, plan position, green gates) so a run interrupted
+    mid-response can resume from the last confirmed milestone instead of restarting or
+    falsely claiming completion. A milestone that was never checkpointed is unconfirmed
+    on resume and must be re-verified. See `.github/orchestration.md`.
 
 ## Run trace & handoff
 
@@ -66,6 +75,12 @@ Leave an auditable trace so a reviewer (human or LLM) can reconstruct the run:
 
 - **At start:** state the governed files you read, the skills you will use (and why),
   the edit/path boundary, and a short plan with validation steps.
+- **After each phase:** a checkpoint line — the milestone completed, the plan position
+  (e.g. "3/5 phases"), and the exit gate that went green. This is the resume anchor: an
+  interrupted run re-enters at the step after the last such line.
+- **For each delegation:** the bounded subproblem, the result received, and where it was
+  merged into the plan — so a reviewer can see a real delegate-and-merge loop, not task
+  bookkeeping.
 - **At end:** a concise handoff — skills actually used, files changed, gates/tests run
   with results, any skipped validation and why, assumptions made, and any human
   intervention required.
