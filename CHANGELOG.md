@@ -5,6 +5,31 @@ All notable changes to this template are documented here. The format is based on
 [Semantic Versioning](https://semver.org/). Downstream projects adopt a release with
 `make template-sync REF=vX.Y.Z` (see `docs/template-sync.md`).
 
+## [0.5.0]
+
+### Added
+- **`bootstrap_company_brain` skill** (`.github/skills/bootstrap_company_brain.md`):
+  guides the interview-and-mine process that instantiates the company-brain template for
+  a new organization — filling domain, glossary, conventions, architecture, and ownership
+  from real sources (repos, docs, team interviews) and replacing every `_PENDIENTE_`
+  marker with verified content. Companion guide: `docs/company-brain.md`.
+- **`source-command-retro` and `source-command-verify` external skills**
+  (`.github/skills-external/`): the `/retro` and `/verify` close-out and quality-gate
+  loops projected as synced skills, so they are available in every supported tool rather
+  than only as Claude Code slash commands.
+- **Local-model Mac setup guide** (`docs/local-model-mac-setup.md`): the install path
+  from a fresh clone to `make opencode` running against a self-hosted model — LM Studio,
+  a local LiteLLM gateway, an honest memory budget for 16 GB / 24 GB machines, the
+  environment-variable contract, and which knob is owned by the server, the gateway card,
+  or `.env`. Complements the tuning levers in `docs/local-model-runtime-config.md`
+  instead of duplicating them; both docs now cross-link.
+- **`gateway/config.example.yaml`**: versioned LiteLLM gateway template carrying the
+  output cap, temperature, repetition penalty, and timeouts as configuration rather than
+  prose. The documented launch command pins `fastapi==0.140.0` — `litellm[proxy]` declares
+  `fastapi>=0.136.3,<1.0` but imports `get_flat_dependant`, removed during the 0.140 patch
+  series, so an unpinned install dies at startup. The real config (`gateway/config.yaml`)
+  is git-ignored.
+
 ## [0.4.0]
 
 ### Added
