@@ -92,24 +92,31 @@ Before finalizing generated work:
 
 ## Release Discipline
 
-Releases of this template are manual and traceable. The tooling
-(`scripts/harness_release.py`, `make/harness.mk`) validates and prints commands; it
-never commits, tags, pushes, or publishes. Full policy:
-`docs/harness-release-lifecycle.md`.
+Releases of this template are guarded and traceable. The tooling
+(`scripts/harness_release.py`, `make/harness.mk`) is read-only by default; git
+mutation happens ONLY inside two guarded commands — `make release-pr` and
+`make publish-release` — each of which requires its full guard set (including the
+release preflight) to pass and then an explicit interactive confirmation. Full
+policy: `docs/harness-release-lifecycle.md`.
 
 **The tag is the last step, never the first.** The mandatory order is:
 
-1. Derive the version — `make harness-change-summary BASE_REF=<latest-tag>`. Never
-   invent the number; the tool prints it.
-2. Reconcile that one number in `pyproject.toml` and `CHANGELOG.md`, then merge to
-   `main`.
-3. `make harness-release-check VERSION=X.Y.Z BASE_REF=<prev-tag>` — must exit green.
-4. Only then run the printed `git tag` / `git push` / `gh release` commands.
+1. `make new-version` — derives the version from the classified changes since the
+   latest tag and reconciles `pyproject.toml` + `CHANGELOG.md`. Never invent the
+   number. Curate the scaffolded CHANGELOG bullets by hand.
+2. `make release-pr` — commits exactly the bump files, pushes, and opens the
+   release PR (after confirmation). Merge it to `main`.
+3. `make publish-release` — on `main`: green preflight, confirmation, then tag,
+   push, GitHub Release, and manifest. The tag is created only after everything
+   else has passed.
 
 Rules an agent MUST follow:
 
-- Never create or push a tag before the preflight passes. `make harness-release`
-  **prints** the tag command — printing is not executing.
+- Never create or push a tag outside `make publish-release` while its preflight is
+  red. `make harness-release` remains the manual fallback: it **prints** the
+  publish commands — printing is not executing.
+- The confirmation prompt is the human gate. An agent must never answer it, pass
+  `YES=1`, or pipe input into it on its own; the operator confirms.
 - A published tag is immutable. Never `git tag -f`, never `git push --force` a tag,
   never delete a tag that already has a GitHub Release or a downstream consumer.
 - Never edit `pyproject.toml` or `CHANGELOG.md` to match a tag that already exists.
@@ -117,11 +124,11 @@ Rules an agent MUST follow:
 - Preflight failures are preconditions, not obstacles to bypass. Do not reach for
   `SKIP_GATES=1` to make a red preflight green; it skips `make check` only, and the
   precondition problems remain.
-- `pyproject.toml` and `uv.lock` are platform paths, so the version bump itself always
-  reports `platform_change` when `BASE_REF` is passed. Before using `ALLOW_PLATFORM=1`,
-  run `make harness-platform-summary BASE_REF=<prev-tag>` and confirm the list contains
-  **only** those two files. Anything else is a real platform change and needs its own
-  reviewed PR with a migration note.
+- `pyproject.toml` and `uv.lock` are platform paths. When the platform delta since
+  the base tag is **exactly** that pair, the preflight auto-allows it (that pair is
+  the version bump itself). Any other platform path still fails the preflight and
+  needs its own reviewed PR with a migration note — `ALLOW_PLATFORM=1` exists for
+  that reviewed case only, never to silence the check.
 
 Recovering from a tag created too early — a tag whose commit does not carry the
 matching `pyproject.toml` version — depends on whether it was published:
