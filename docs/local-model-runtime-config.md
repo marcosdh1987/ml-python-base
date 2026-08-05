@@ -12,6 +12,11 @@ complements two docs that already cover the *input/convergence* side: the "won't
 checklist in [`.github/portability.md`](../.github/portability.md) and the sizing heuristics
 in [`docs/task-sizing.md`](task-sizing.md).
 
+This doc is the **why**. For the **how** on a Mac — installing LM Studio, running a local
+LiteLLM, the environment-variable contract, and the memory budget on a 16 GB / 24 GB
+machine — follow [`docs/local-model-mac-setup.md`](local-model-mac-setup.md), which applies
+these levers step by step.
+
 ## Priority order (start here)
 
 When you want to develop with self-hosted models via the ai-gateway, apply these in order.

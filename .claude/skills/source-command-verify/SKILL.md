@@ -1,0 +1,1 @@
+../../../.github/skills-external/source-command-verify/SKILL.md
