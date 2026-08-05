@@ -309,11 +309,13 @@ assessments of AI-assisted coding skill (and what a template can/can't influence
 | `make template-sync` | Selective governance sync from a semver tag (recommended) |
 | `make template-sync PREVIEW=1` | Preview the governance diff without applying |
 | `make version` | Show the current version, the latest tag, and whether a release is pending |
-| `make harness-change-summary BASE_REF=vX.Y.Z` | Classify changes and print the next version number |
-| `make new-version [VERSION=x]` | Step 2 in one command: bump `pyproject.toml` + scaffold CHANGELOG + refresh `uv.lock` |
-| `make harness-release-check VERSION=x` | Read-only release preflight (never tags) |
-| `make harness-release VERSION=x` | Preflight + **print** the manual tag/publish commands |
-| `make template-release VERSION=x` | Deprecated — refuses to run; use `make harness-release` |
+| `make harness-change-summary` | Classify changes since the latest tag and print the next version number |
+| `make new-version [VERSION=x]` | Step 1: bump `pyproject.toml` + scaffold CHANGELOG + refresh `uv.lock` |
+| `make release-pr` | Step 2 (guarded): branch + commit the bump + push + open the release PR |
+| `make publish-release` | Step 3 (guarded, on `main`): preflight → confirm → tag + Release + manifest |
+| `make harness-release-check` | Read-only release preflight (never tags) |
+| `make harness-release` | Manual fallback: preflight + **print** the publish commands |
+| `make template-release VERSION=x` | Deprecated — refuses to run; use `make publish-release` |
 | `make template-sync-preview` | Fetch template changes and preview incoming commits |
 | `make template-sync-merge` | Merge full template branch into current branch |
 | `make template-sync-rebase` | Rebase current branch onto full template branch |
@@ -338,75 +340,65 @@ make version
 
 ### Cut a release (maintainers)
 
-Releases are **manual and traceable**: the tooling validates and prints commands but
-never commits, tags, pushes, or publishes (`make template-release` is deprecated and
-points here). Everything below uses **one version number** — and you don't invent it,
-the tooling tells you.
+Releases are **guarded and traceable**: the tooling is read-only by default, and the
+only two commands that mutate git (`make release-pr`, `make publish-release`) run
+their full guard set first and then stop for an explicit `[y/N]` confirmation
+(`make template-release` is deprecated and points here). You never invent the version
+number — the tooling derives it — and you never type it twice: every target defaults
+`VERSION` from `pyproject.toml` and `BASE_REF` from the latest tag.
 
 > ⚠️ **The tag is the LAST step, never the first.**
 > The version lives in `pyproject.toml` and `CHANGELOG.md`; the tag only *records* a
-> commit that already carries it. Tag before Step 2 and the preflight rejects the
-> release — correctly, because a published tag is never moved.
->
-> Do the three steps in order: **① get the number → ② put it in the two files and merge
-> → ③ tag and publish.**
+> commit that already carries it. `publish-release` creates the tag only after the
+> whole preflight is green — because a published tag is never moved.
 
+The whole flow is three commands:
 
-
-#### Step 1 — Get the next version number
+#### Step 1 — Scaffold the bump
 
 ```bash
-make harness-change-summary BASE_REF=$(git describe --tags --abbrev=0)
-# 👉 Recommended bump: PATCH  (current 0.2.0 → next 0.2.1)
-#    Use this version in pyproject.toml, CHANGELOG.md, and the release: 0.2.1
+make new-version
+# ✅ Prepared release 0.2.1: pyproject.toml + '## [0.2.1]' CHANGELOG section
 ```
 
-That number follows SemVer — **PATCH** = fix / docs / tooling · **MINOR** = new skill,
-agent, rule, or supported tool · **MAJOR** = removal, rename, or breaking change. Use
-it as the `VERSION` everywhere below (this example uses `0.2.1`).
+It derives the number from the classified changes since the latest tag (SemVer —
+**PATCH** = fix / docs / tooling · **MINOR** = new skill, agent, rule, or supported
+tool · **MAJOR** = removal, rename, or breaking change), writes it into
+`pyproject.toml`, scaffolds the CHANGELOG section from the commit subjects, and
+refreshes `uv.lock`. It refuses to run if the version doesn't increase, the tag
+already exists, the CHANGELOG section is already there — or a previous release is
+reconciled but not yet tagged (publish that one first).
 
-#### Step 2 — Put that number in two files, then PR + merge
+Then **edit the CHANGELOG bullets by hand**: they start as raw commit subjects — turn
+them into human release notes.
 
-One command does the mechanical part — writes the version into `pyproject.toml`,
-scaffolds the `## [X.Y.Z]` CHANGELOG section from the commits since the last tag, and
-refreshes `uv.lock`:
+#### Step 2 — Open the release PR
 
 ```bash
-make new-version VERSION=0.2.1    # or just `make new-version` to take the recommended bump
+make release-pr        # add DRY_RUN=1 to preview, YES=1 to skip the prompt
 ```
 
-Then **edit the CHANGELOG bullets** (they start as raw commit subjects — turn them into
-human release notes) and ship the bump with the commands the tool printed:
-
-```bash
-git switch -c release/v0.2.1
-git add pyproject.toml CHANGELOG.md uv.lock
-git commit -m "chore(release): reconcile version and changelog for 0.2.1"
-git push -u origin release/v0.2.1
-gh pr create --title "chore(release): 0.2.1" --body "Version bump + changelog for v0.2.1."
-```
-
-Merge the PR to `main`. (`make new-version` mutates the two files locally, like
-`make fix` — git, the PR, and the merge stay yours. It refuses to run if the version
-doesn't increase, the tag already exists, or the CHANGELOG section is already there.)
+After its guards pass (curated CHANGELOG, only the bump files dirty, no tag, `gh`
+available) and you confirm, it creates `release/vX.Y.Z`, commits exactly
+`pyproject.toml` + `CHANGELOG.md` + `uv.lock`, pushes, and opens the PR. Review and
+merge it to `main`.
 
 #### Step 3 — Publish (after the merge)
 
-Replace `0.2.1` with your number and copy-paste the whole block:
-
 ```bash
 git switch main && git pull --ff-only
-make harness-release VERSION=0.2.1        # preflight (runs the gates) + prints these
-git tag -a v0.2.1 -m "Template release v0.2.1"
-git push origin v0.2.1
-gh release create v0.2.1 --title v0.2.1 --notes "Template release v0.2.1"
-make harness-release-manifest VERSION=0.2.1 PUBLISHED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-gh release upload v0.2.1 dist/harness-release-v0.2.1.yaml
+make publish-release   # preflight (runs the gates) → [y/N] → tag + Release + manifest
 ```
 
-`make harness-release` refuses to proceed unless `pyproject.toml` and `CHANGELOG.md`
-match the version, the tag is new, and the tree is clean — so if Step 2 was skipped it
-stops you with a clear message. Full policy and provenance flags:
+It refuses to run off `main`, out of sync with `origin/main`, or with a red
+preflight. After you confirm, it runs the whole publish sequence: annotated tag →
+push → GitHub Release (notes taken from your curated CHANGELOG section) → release
+manifest (timestamp stamped automatically) → asset upload. If a step fails
+mid-sequence, nothing is rolled back (a pushed tag is immutable) and it prints the
+exact remaining commands to finish by hand.
+
+Prefer to type the commands yourself? `make harness-release` runs the same preflight
+and **prints** the sequence without executing it. Full policy and provenance flags:
 [docs/harness-release-lifecycle.md](docs/harness-release-lifecycle.md).
 
 #### If the preflight fails
@@ -416,24 +408,25 @@ Each code names a precondition. Fix the precondition — never bypass the check
 
 | Code | What it means | Fix |
 |---|---|---|
-| `version_mismatch` | `pyproject.toml` still holds the old version | Do Step 2: set `version = "X.Y.Z"` |
-| `changelog_missing` | No `## [X.Y.Z]` section in `CHANGELOG.md` | Do Step 2: add the section at the top |
+| `version_mismatch` | `pyproject.toml` still holds the old version | Do Step 1: `make new-version` |
+| `changelog_missing` | No `## [X.Y.Z]` section in `CHANGELOG.md` | Do Step 1: `make new-version` |
+| `changelog_todo` | The CHANGELOG section still has the scaffold `- TODO:` bullet | Curate the release notes, then re-run `make release-pr` |
 | `tag_exists` | The tag was created before Steps 1–2 | See below — never move a published tag |
-| `dirty_tree` | Uncommitted changes | Commit or stash, then re-run |
-| `platform_change` | The release touches platform paths | See the note below; otherwise split into a separate reviewed PR |
-| `invalid_semver` | `VERSION` is not `MAJOR.MINOR.PATCH` | Use the number from Step 1 |
+| `dirty_tree` | Uncommitted changes at publish time | Commit or stash, then re-run |
+| `nothing_to_commit` | `make release-pr` found a clean tree | Run `make new-version` first (or the bump is already committed — open the PR by hand) |
+| `unexpected_dirty` | Files beyond `pyproject.toml`/`CHANGELOG.md`/`uv.lock` are dirty | Commit or stash them — the release commit carries only the bump |
+| `branch_exists` | `release/vX.Y.Z` exists and is not checked out | Switch to it or delete it |
+| `off_main` / `out_of_sync` | `make publish-release` run off `main`, or main ≠ `origin/main` | `git switch main && git pull --ff-only` |
+| `gh_missing` | GitHub CLI not on PATH | `brew install gh && gh auth login` |
+| `platform_change` | The release touches platform paths beyond the bump pair | Split into a separate reviewed PR with a migration note |
+| `invalid_semver` | `VERSION` is not `MAJOR.MINOR.PATCH` | Take the derived number (don't pass `VERSION` at all) |
 
-**About `platform_change`** — `pyproject.toml` and `uv.lock` are platform paths, and the
-Step 2 bump necessarily touches both. So *every* release reports `platform_change` when
-you pass `BASE_REF`. If the bump is the only platform change, that is expected:
-
-```bash
-make harness-platform-summary BASE_REF=v0.2.1   # confirm it lists ONLY pyproject.toml + uv.lock
-make harness-release-check VERSION=0.3.0 BASE_REF=v0.2.1 ALLOW_PLATFORM=1
-```
-
-If anything else appears in that list (the sync engine, `Makefile`, `registry.toml`), it
-is a real platform change: split it into its own reviewed PR with a migration note.
+**About `platform_change`** — `pyproject.toml` and `uv.lock` are platform paths, and
+the Step 1 bump necessarily touches both. The preflight recognizes that exact pair and
+auto-allows it (you'll see an "auto-allowed" note). If *anything else* appears in the
+platform list (the sync engine, `Makefile`, `registry.toml`), it is a real platform
+change: split it into its own reviewed PR with a migration note. `ALLOW_PLATFORM=1`
+exists for that reviewed case only.
 
 **Recovering from `tag_exists`** — you tagged too early, so the tag points at a commit
 that does not carry the version. Never fix this by editing the files to match the tag;
@@ -443,8 +436,9 @@ that inverts the source of truth. Check whether it was actually published:
 gh release list          # is there a Release for vX.Y.Z?
 ```
 
-- **No Release and no downstream consumer** — the tag is noise. Delete it and restart
-  at Step 2:
+- **No Release and no downstream consumer** — the tag is noise. Delete it, then
+  resume the flow (`make release-pr` if the bump isn't merged yet, otherwise
+  `make publish-release` on `main`):
 
   ```bash
   git tag -d vX.Y.Z

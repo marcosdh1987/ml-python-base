@@ -547,3 +547,365 @@ def test_cli_change_summary(
     assert rc == hr.EXIT_OK
     out = capsys.readouterr().out
     assert "minor" in out.lower()
+
+
+# --------------------------------------------------------------------------- #
+# Auto-defaults, pending release, and the bump-pair auto-allow
+# --------------------------------------------------------------------------- #
+
+
+def test_cli_release_check_defaults_version_from_pyproject(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    monkeypatch.setattr(hr, "REPO_ROOT", repo)
+    rc = hr.main(["release-check", "--skip-gates"])
+    assert rc == hr.EXIT_OK
+    assert "using pyproject.toml: 0.2.0" in capsys.readouterr().out
+
+
+def test_cli_release_check_defaults_base_ref_from_latest_tag(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    _git(repo, "tag", "-a", "v0.1.0", "-m", "r")
+    monkeypatch.setattr(hr, "REPO_ROOT", repo)
+    rc = hr.main(["release-check", "--skip-gates"])
+    assert rc == hr.EXIT_OK
+    assert "using latest tag: v0.1.0" in capsys.readouterr().out
+
+
+def test_check_release_bump_pair_auto_allowed(repo: Path) -> None:
+    base = _base_sha(repo)
+    _set_version(repo, "0.3.0")
+    _write(
+        repo,
+        "CHANGELOG.md",
+        "# Changelog\n\n## [0.3.0]\n\n### Added\n- x.\n\n## [0.2.0]\n\n### Added\n- b.\n",
+    )
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "bump")
+    # pyproject.toml is a platform path, but the delta is exactly the bump pair.
+    problems = hr.check_release(repo, "0.3.0", base_ref=base, check_git=False)
+    assert "platform_change" not in _codes(problems)
+
+
+def test_check_release_other_platform_path_still_fails(repo: Path) -> None:
+    base = _base_sha(repo)
+    _set_version(repo, "0.3.0")
+    _write(
+        repo,
+        "CHANGELOG.md",
+        "# Changelog\n\n## [0.3.0]\n\n### Added\n- x.\n\n## [0.2.0]\n\n### Added\n- b.\n",
+    )
+    _write(repo, "Makefile", "check:\n\t@echo changed\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "bump + platform")
+    problems = hr.check_release(repo, "0.3.0", base_ref=base, check_git=False)
+    assert "platform_change" in _codes(problems)
+
+
+def test_pending_release_detected(repo: Path) -> None:
+    _git(repo, "tag", "-a", "v0.2.0", "-m", "r")
+    _set_version(repo, "0.3.0")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "bump only")
+    assert hr.pending_release(repo) == "0.3.0"
+
+
+def test_pending_release_none_when_current_is_tagged(repo: Path) -> None:
+    _git(repo, "tag", "-a", "v0.2.0", "-m", "r")
+    assert hr.pending_release(repo) is None
+
+
+def test_prepare_refuses_pending_release(repo: Path) -> None:
+    _git(repo, "tag", "-a", "v0.2.0", "-m", "r")
+    _set_version(repo, "0.3.0")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "bump only")
+    with pytest.raises(hr.ReleaseError) as exc:
+        hr.prepare_release(repo, None, None)
+    assert exc.value.exit_code == hr.EXIT_PRECONDITION
+    assert "publish it first" in str(exc.value)
+    # An explicit version overrides the guard.
+    assert hr.prepare_release(repo, "0.4.0", None) == "0.4.0"
+
+
+def test_cli_change_summary_warns_about_pending_release(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    _git(repo, "tag", "-a", "v0.2.0", "-m", "r")
+    _set_version(repo, "0.3.0")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "bump only")
+    monkeypatch.setattr(hr, "REPO_ROOT", repo)
+    rc = hr.main(["change-summary"])
+    assert rc == hr.EXIT_OK
+    out = capsys.readouterr().out
+    assert "publish-release" in out
+
+
+def test_extract_changelog_section(repo: Path) -> None:
+    body = hr.extract_changelog_section(repo, "0.2.0")
+    assert "- Baseline." in body
+    assert "## [0.1.0]" not in body
+    with pytest.raises(hr.ReleaseError):
+        hr.extract_changelog_section(repo, "9.9.9")
+
+
+# --------------------------------------------------------------------------- #
+# Guarded subcommands: release-pr and publish
+# --------------------------------------------------------------------------- #
+
+_ORIG_RUN = hr.run
+
+
+def _intercepting_runner(
+    recorded: list[list[str]],
+    fake_git_subcmds: set[str],
+    fail_on: tuple[str, ...] = (),
+):
+    """Fake gh + selected git mutations (recording them); delegate reads to git."""
+
+    def runner(cmd, root=None, *, check=True, capture=False):
+        is_fake = cmd[0] == "gh" or (cmd[0] == "git" and cmd[1] in fake_git_subcmds)
+        if is_fake:
+            recorded.append(list(cmd))
+            rc = 1 if fail_on and cmd[: len(fail_on)] == list(fail_on) else 0
+            return subprocess.CompletedProcess(cmd, rc, stdout="", stderr="")
+        return _ORIG_RUN(cmd, root, check=check, capture=capture)
+
+    return runner
+
+
+def _stage_bump(repo: Path) -> None:
+    """Leave the tree exactly as `make new-version` + curation would: the bump
+    files dirty and a curated (no TODO) CHANGELOG section for 0.3.0."""
+    _set_version(repo, "0.3.0")
+    _write(
+        repo,
+        "CHANGELOG.md",
+        "# Changelog\n\n## [0.3.0]\n\n### Added\n- Curated note.\n\n"
+        "## [0.2.0]\n\n### Added\n- Baseline.\n",
+    )
+    _write(repo, "uv.lock", "# lock\n")
+
+
+def test_release_pr_refuses_clean_tree(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(hr, "REPO_ROOT", repo)
+    monkeypatch.setattr(hr.shutil, "which", lambda _: "/usr/bin/gh")
+    rc = hr.main(["release-pr", "--yes"])
+    assert rc == hr.EXIT_PRECONDITION
+
+
+def test_release_pr_refuses_todo_bullet(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    _stage_bump(repo)
+    _write(
+        repo,
+        "CHANGELOG.md",
+        "# Changelog\n\n## [0.3.0]\n\n### Changed\n"
+        "- TODO: describe the changes in this release.\n\n"
+        "## [0.2.0]\n\n### Added\n- Baseline.\n",
+    )
+    monkeypatch.setattr(hr, "REPO_ROOT", repo)
+    monkeypatch.setattr(hr.shutil, "which", lambda _: "/usr/bin/gh")
+    rc = hr.main(["release-pr", "--yes"])
+    assert rc == hr.EXIT_PRECONDITION
+    assert "changelog_todo" in capsys.readouterr().out
+
+
+def test_release_pr_refuses_unrelated_dirty_files(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    _stage_bump(repo)
+    _write(repo, "src/extra.py", "x = 1\n")
+    monkeypatch.setattr(hr, "REPO_ROOT", repo)
+    monkeypatch.setattr(hr.shutil, "which", lambda _: "/usr/bin/gh")
+    rc = hr.main(["release-pr", "--yes"])
+    assert rc == hr.EXIT_PRECONDITION
+    assert "unexpected_dirty" in capsys.readouterr().out
+
+
+def test_release_pr_refuses_without_gh(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    _stage_bump(repo)
+    monkeypatch.setattr(hr, "REPO_ROOT", repo)
+    monkeypatch.setattr(hr.shutil, "which", lambda _: None)
+    rc = hr.main(["release-pr", "--yes"])
+    assert rc == hr.EXIT_MISSING
+    assert "gh_missing" in capsys.readouterr().out
+
+
+def test_release_pr_dry_run_executes_nothing(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    _stage_bump(repo)
+    recorded: list[list[str]] = []
+    monkeypatch.setattr(hr, "REPO_ROOT", repo)
+    monkeypatch.setattr(hr.shutil, "which", lambda _: "/usr/bin/gh")
+    monkeypatch.setattr(
+        hr, "run", _intercepting_runner(recorded, {"switch", "add", "commit", "push"})
+    )
+    rc = hr.main(["release-pr", "--dry-run"])
+    assert rc == hr.EXIT_OK
+    assert recorded == []
+    assert "Dry run" in capsys.readouterr().out
+    assert not hr.working_tree_clean(repo)  # bump files still dirty
+
+
+def test_release_pr_aborts_without_confirmation(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _stage_bump(repo)
+    recorded: list[list[str]] = []
+    monkeypatch.setattr(hr, "REPO_ROOT", repo)
+    monkeypatch.setattr(hr.shutil, "which", lambda _: "/usr/bin/gh")
+    monkeypatch.setattr(
+        hr, "run", _intercepting_runner(recorded, {"switch", "add", "commit", "push"})
+    )
+    # stdin is not a tty under pytest, and --yes is absent → refuse.
+    rc = hr.main(["release-pr"])
+    assert rc == hr.EXIT_PRECONDITION
+    assert recorded == []
+
+
+def test_release_pr_happy_path_command_order(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _stage_bump(repo)
+    recorded: list[list[str]] = []
+    monkeypatch.setattr(hr, "REPO_ROOT", repo)
+    monkeypatch.setattr(hr.shutil, "which", lambda _: "/usr/bin/gh")
+    monkeypatch.setattr(
+        hr, "run", _intercepting_runner(recorded, {"switch", "add", "commit", "push"})
+    )
+    rc = hr.main(["release-pr", "--yes"])
+    assert rc == hr.EXIT_OK
+    heads = [(c[0], c[1]) for c in recorded]
+    assert heads == [
+        ("git", "switch"),
+        ("git", "add"),
+        ("git", "commit"),
+        ("git", "push"),
+        ("gh", "pr"),
+    ]
+    assert recorded[0][:3] == ["git", "switch", "-c"]
+    assert recorded[0][3] == "release/v0.3.0"
+    assert "pyproject.toml" in recorded[1]
+    assert "CHANGELOG.md" in recorded[1]
+    assert "uv.lock" in recorded[1]
+    assert "chore(release): reconcile version and changelog for 0.3.0" in recorded[2]
+
+
+@pytest.fixture
+def publish_repo(tmp_path: Path) -> Path:
+    """A repo on branch `main`, in sync with a local bare `origin`, carrying a
+    merged 0.3.0 bump and everything the manifest needs at the tag."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    _set_version(root, "0.3.0")
+    _write(
+        root,
+        "CHANGELOG.md",
+        "# Changelog\n\n## [0.3.0]\n\n### Added\n- Curated note.\n\n"
+        "## [0.2.0]\n\n### Added\n- Baseline.\n",
+    )
+    _write(root, "adapters/registry.toml", _REGISTRY)
+    _write(root, ".github/architecture.md", "# Architecture\nv1\n")
+    _write(root, "Makefile", "check:\n\t@echo ok\n")
+    _write(root, "skills-lock.json", "{}\n")
+    _write(root, "uv.lock", "# lock\n")
+    _git(root, "init", "-q")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "merged bump")
+    _git(root, "branch", "-m", "main")
+    _git(root, "tag", "-a", "v0.2.0", "-m", "prev")
+    bare = tmp_path / "origin.git"
+    _git(root, "init", "-q", "--bare", str(bare))
+    _git(root, "remote", "add", "origin", str(bare))
+    _git(root, "push", "-q", "-u", "origin", "main")
+    return root
+
+
+def test_publish_refuses_off_main(
+    publish_repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    _git(publish_repo, "switch", "-q", "-c", "feature/x")
+    monkeypatch.setattr(hr, "REPO_ROOT", publish_repo)
+    monkeypatch.setattr(hr.shutil, "which", lambda _: "/usr/bin/gh")
+    rc = hr.main(["publish", "--skip-gates", "--yes"])
+    assert rc == hr.EXIT_PRECONDITION
+    assert "off_main" in capsys.readouterr().out
+
+
+def test_publish_refuses_out_of_sync(
+    publish_repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    _write(publish_repo, ".github/architecture.md", "# Architecture\nv2\n")
+    _git(publish_repo, "add", "-A")
+    _git(publish_repo, "commit", "-q", "-m", "unpushed")
+    monkeypatch.setattr(hr, "REPO_ROOT", publish_repo)
+    monkeypatch.setattr(hr.shutil, "which", lambda _: "/usr/bin/gh")
+    rc = hr.main(["publish", "--skip-gates", "--yes"])
+    assert rc == hr.EXIT_PRECONDITION
+    assert "out_of_sync" in capsys.readouterr().out
+
+
+def test_publish_dry_run_executes_nothing(
+    publish_repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    recorded: list[list[str]] = []
+    monkeypatch.setattr(hr, "REPO_ROOT", publish_repo)
+    monkeypatch.setattr(hr.shutil, "which", lambda _: "/usr/bin/gh")
+    monkeypatch.setattr(hr, "run", _intercepting_runner(recorded, {"push"}))
+    rc = hr.main(["publish", "--skip-gates", "--dry-run"])
+    assert rc == hr.EXIT_OK
+    assert recorded == []
+    assert not hr.tag_exists(publish_repo, "0.3.0")
+    assert "Dry run" in capsys.readouterr().out
+
+
+def test_publish_happy_path(
+    publish_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    recorded: list[list[str]] = []
+    monkeypatch.setattr(hr, "REPO_ROOT", publish_repo)
+    monkeypatch.setattr(hr.shutil, "which", lambda _: "/usr/bin/gh")
+    # `git tag` runs for real (the manifest reads the tag); push + gh are faked.
+    monkeypatch.setattr(hr, "run", _intercepting_runner(recorded, {"push"}))
+    rc = hr.main(["publish", "--skip-gates", "--yes"])
+    assert rc == hr.EXIT_OK
+    assert hr.tag_exists(publish_repo, "0.3.0")
+    heads = [(c[0], c[1]) for c in recorded]
+    assert heads == [("git", "push"), ("gh", "release"), ("gh", "release")]
+    assert recorded[1][2] == "create"
+    assert recorded[2][2] == "upload"
+    notes = (publish_repo / "dist/release-notes-v0.3.0.md").read_text()
+    assert "- Curated note." in notes
+    manifest = (publish_repo / "dist/harness-release-v0.3.0.yaml").read_text()
+    assert "version: 0.3.0" in manifest
+    assert "published_at:" in manifest
+
+
+def test_publish_mid_failure_reports_remaining_steps(
+    publish_repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    recorded: list[list[str]] = []
+    monkeypatch.setattr(hr, "REPO_ROOT", publish_repo)
+    monkeypatch.setattr(hr.shutil, "which", lambda _: "/usr/bin/gh")
+    monkeypatch.setattr(
+        hr,
+        "run",
+        _intercepting_runner(recorded, {"push"}, fail_on=("gh", "release", "create")),
+    )
+    rc = hr.main(["publish", "--skip-gates", "--yes"])
+    assert rc != hr.EXIT_OK
+    out = capsys.readouterr().out
+    # The tag survives (never rolled back) and the tail of the plan is printed.
+    assert hr.tag_exists(publish_repo, "0.3.0")
+    assert "NOT rolled back" in out
+    assert "Finish manually" in out
+    assert "gh release upload" in out

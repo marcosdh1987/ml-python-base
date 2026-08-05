@@ -408,16 +408,15 @@ template-sync:
 		$(if $(BRANCH),--branch $(BRANCH),) \
 		$(if $(PREVIEW),--preview,)
 
-# DEPRECATED: the old release flow auto-committed and auto-tagged. Releases are
-# now a read-only preflight + manual tag/publish via the traceable release
-# contract. This shim routes callers to the new flow and mutates nothing.
-# Usage: make harness-release VERSION=0.2.0
+# DEPRECATED: the old release flow auto-committed and auto-tagged with no
+# guard. Releases now go through the guarded traceable release contract.
+# Usage: make publish-release
 template-release:
-	@echo "⚠️  'make template-release' is deprecated (it auto-committed and tagged)."
-	@echo "   Use the traceable release contract instead — it mutates NOTHING:"
-	@echo "     make harness-release-check VERSION=$(if $(VERSION),$(VERSION),X.Y.Z)"
-	@echo "     make harness-release       VERSION=$(if $(VERSION),$(VERSION),X.Y.Z)"
-	@echo "   Then run the printed git tag / gh release commands manually."
+	@echo "⚠️  'make template-release' is deprecated (it auto-committed and tagged with no guard)."
+	@echo "   Use the guarded release contract instead:"
+	@echo "     make new-version        # scaffold the bump, curate the CHANGELOG"
+	@echo "     make release-pr         # guard -> confirm -> branch+commit+push+PR"
+	@echo "     make publish-release    # on main: preflight -> confirm -> tag+Release+manifest"
 	@exit 1
 
 # =============================================================================
@@ -508,6 +507,12 @@ help:
 	@echo "  🚀 FastAPI: http://localhost:8008"
 	@echo "  📖 API Documentation: http://localhost:8008/docs"
 	@echo "  🔍 Agent Discovery: http://localhost:8008/.well-known/agent.json"
+	@echo ""
+	@echo "Release (template maintainers):"
+	@echo "  make version             Show pyproject version, latest tag, pending release"
+	@echo "  make new-version         Scaffold the bump (pyproject + CHANGELOG + uv.lock)"
+	@echo "  make release-pr          Guarded: branch + commit bump + push + open the PR"
+	@echo "  make publish-release     Guarded, on main: preflight -> confirm -> tag + Release"
 	@echo ""
 	@echo "Utilities:"
 	@echo "  make help                Show this help message"
