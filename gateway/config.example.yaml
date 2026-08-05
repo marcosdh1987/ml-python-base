@@ -1,0 +1,45 @@
+# =============================================================================
+# Local LiteLLM gateway for self-hosted development on a Mac.
+#
+# Copy to gateway/config.yaml (gitignored), replace every <PLACEHOLDER>, then:
+#   LITELLM_MASTER_KEY=sk-local-change-me \
+#     uvx --from 'litellm[proxy]' --with 'fastapi==0.140.0' \
+#     litellm --config gateway/config.yaml --port 4000
+#
+# The fastapi pin is required: litellm[proxy] declares fastapi>=0.136.3,<1.0 but
+# imports get_flat_dependant, removed during the 0.140 patch series. Without it the
+# proxy dies at startup with an ImportError. Drop it once upstream fixes the range.
+#
+# Setup walkthrough:  docs/local-model-mac-setup.md
+# Why these numbers:  docs/local-model-runtime-config.md (the hard levers)
+# =============================================================================
+
+model_list:
+  # --- BUILD card: self-hosted, capped. `.env` targets it as gateway/<model_name>.
+  - model_name: <BUILD_CARD>              # TODO: real alias once the gateway is deployed
+    litellm_params:
+      model: lm_studio/<LMSTUDIO_MODEL_ID>  # exactly what GET /v1/models returns
+      api_base: os.environ/LMSTUDIO_BASE_URL
+      max_tokens: 2048                    # HARD output cap — lever 1
+      temperature: 0.2                    # deterministic edits — lever 6
+      repetition_penalty: 1.15            # the loop fix — lever 6
+      timeout: 600                        # a cold JIT model load can take minutes
+      stream_timeout: 120                 # per-chunk stall ceiling while streaming
+    model_info:
+      # MUST NOT exceed the Context Length LM Studio actually serves. If it does,
+      # prompts are truncated silently and the model loops. See "Who owns which knob".
+      max_input_tokens: 32768
+
+  # --- PLAN card: strong cloud model for the backlog only. No cap: plans are short
+  # anyway, and truncating a plan is worse than paying for it.
+  - model_name: <PLAN_CARD>               # TODO: real alias
+    litellm_params:
+      model: <PLAN_PROVIDER>/<PLAN_MODEL_ID>
+      api_key: os.environ/<PLAN_PROVIDER_API_KEY>
+
+litellm_settings:
+  drop_params: true                       # local backends reject params they don't know
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY  # this is what GATEWAY_TOKEN must match
+  request_timeout: 600

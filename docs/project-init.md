@@ -54,6 +54,9 @@ any virtual environment exists. Steps:
 
 - Review the diff and commit the initialization as a single commit.
 - Point `origin` at your new project's repository.
+- To develop against a self-hosted model on your own Mac instead of a cloud
+  model, set it up once with `docs/local-model-mac-setup.md` (LM Studio ->
+  local LiteLLM -> `make opencode`, plus the environment-variable contract).
 - Start work through the governed flow: `brainstorm_quick` (scoped ideation)
   or the external `brainstorming` skill (design-gated work), then
   `plan_and_execute_feature`. See `docs/skills-management.md` for the

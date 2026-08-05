@@ -50,6 +50,10 @@ adapters, and runs the read-only quality gates. Preview without writing:
 [docs/project-init.md](docs/project-init.md); AI assistants can drive the same
 flow via the `bootstrap_project` skill.
 
+Planning to develop against a **self-hosted model on your own Mac** instead of burning
+cloud tokens? Set that up once with
+[docs/local-model-mac-setup.md](docs/local-model-mac-setup.md).
+
 ### 1. Setup Development Environment
 
 This command will install the specific Python version defined in the Makefile, create the virtual environment, and sync all dependencies from `uv.lock`.
@@ -254,6 +258,11 @@ Self-hosted / local-model mode (`local_model_32k`):
   layer (gateway output cap, repetition penalty, served context) that makes a 32k model
   usable. Short operating rules: `LOCAL_AGENT.md`. Sizing heuristics:
   [docs/task-sizing.md](docs/task-sizing.md).
+- To run that model on **your own Mac** (16 GB / 24 GB), follow
+  [docs/local-model-mac-setup.md](docs/local-model-mac-setup.md) — the install path
+  (LM Studio → local LiteLLM → OpenCode), the environment-variable contract, an honest
+  memory budget, and which knob lives where. Gateway template:
+  `gateway/config.example.yaml`.
 
 ## 🔁 Agentic Working Loop
 

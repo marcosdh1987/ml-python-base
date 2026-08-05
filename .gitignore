@@ -3,6 +3,10 @@ venv/
 env/
 .env
 
+# Local LiteLLM gateway config (holds real keys). The committed template is
+# gateway/config.example.yaml.
+gateway/config.yaml
+
 # Python cache y compilados
 *.pyc
 __pycache__/
