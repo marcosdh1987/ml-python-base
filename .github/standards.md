@@ -54,6 +54,15 @@ For any bug fix, follow an explicit, mandatory loop rather than ad hoc reasoning
 5. **Verify** against the same failure mode: re-run the exact repro and the
    narrowest relevant target test.
 
+Two gates apply to every fix:
+
+- Every edit batch must pass a fast parse/compile check (`py_compile` / `make lint`)
+  before any smoke test; building on a file that does not parse is a
+  **workflow failure signal**.
+- If the preferred test runner is unavailable, fall back immediately to the lightest
+  check that executes the code; stopping, or verifying with a syntax check alone, is
+  a **workflow failure signal**.
+
 The `systematic_debugging` skill carries the full loop. Jumping straight to a fix
 without a stated repro and hypothesis is a **workflow failure signal**.
 

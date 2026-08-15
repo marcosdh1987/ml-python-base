@@ -3,6 +3,28 @@
 > Non-obvious facts discovered while working: gotchas, why-it-is-this-way, dead ends
 > to avoid. Append new entries at the top. One fact per entry.
 
+## Weak models need protocols front-loaded in the adapter file itself (issue #43) — 2026-08-14
+
+Opencode runs with open-source/self-hosted models showed that pointers to skills
+are not reliably followed: agents thrashed on wrong workspace roots, drifted from
+the exact reported exception, skipped post-edit verification when the preferred
+runner was missing, and introduced parse errors mid-edit. The fix (HEP-2026-000)
+was a hybrid: canonical wording in governance (`.github/skills/systematic_debugging.md`
+Execution Rules + `standards.md` Bug-Fix Discipline gates) plus a condensed,
+byte-identical `## Debugging protocol` checklist inserted directly into `OPENCODE.md`
+and `AGENTS.md` **before** the generated skills block, so weak models see it early.
+
+**Why it matters:** for weak models, adapter-file placement and ordering is the
+enforcement mechanism — a rule that only lives behind a skill pointer effectively
+does not exist for them. Also: the issue's artifact paths (`.github/AGENTS.md`,
+`.github/opencode.json`) were stale; real adapters live at the repo root, and only
+the sentinel-delimited skills block is machine-owned (`make check-sync`).
+**How to apply:** when a future HEP targets adapter guidance, edit the hand-written
+prose outside the sentinels, keep multi-adapter copies byte-identical, leave the
+skill's frontmatter `description:` untouched unless all five adapters should regen,
+and always run `make sync-skills` after editing a skill body (the antigravity copy
+is hash-manifested). Source: HEP-2026-000 → `marcosdh1987/ml-python-base#43`.
+
 ## Governed workflow hardened from harness audit evidence (issue #35) — 2026-07-24
 
 The three core governance docs (`.github/architecture.md`, `standards.md`,
