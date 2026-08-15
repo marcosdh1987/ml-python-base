@@ -132,6 +132,30 @@ Pre-release tags (`vX.Y.Z-rc.N`) are outside this contract: the preflight, the s
 engine, and `make version` all expect plain `vX.Y.Z`. Avoid them, and clean up any
 that exist so `git describe` stays meaningful.
 
+## Testing the release flow
+
+`tests/harness_release/test_harness_release.py` exercises the whole contract against
+miniature repos built in `tmp_path`. Two environments meet there and must both be
+hermetic:
+
+- Git commands run **by the tests** go through the `_git` helper, which injects a
+  throwaway identity via environment variables and masks global/system config.
+- Git commands run **by the script under test** (`scripts/harness_release.py` — e.g.
+  the real `git tag -a` in the publish tests) inherit the actual process
+  environment. On a CI runner there is no global config and no usable
+  auto-detected identity, so the fixtures persist `user.name`/`user.email` in each
+  temp repo's local config (`_configure_identity`). Without that, publish tests
+  pass locally (git auto-detects an identity from the OS user) but fail in CI with
+  `fatal: empty ident name`.
+
+To reproduce the CI conditions locally:
+
+```bash
+GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null \
+GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=user.useConfigOnly GIT_CONFIG_VALUE_0=true \
+uv run pytest tests/harness_release/ --no-cov
+```
+
 ## Proposing a change
 
 Open a **Harness improvement proposal** issue (`.github/ISSUE_TEMPLATE/harness-improvement.yml`).
