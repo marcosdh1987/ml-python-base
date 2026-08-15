@@ -26,19 +26,13 @@ jobs:
       - name: Install dependencies
         run: make install
 
+      # Same gate as local `make ci`; the logic lives once, in the Makefile.
       - name: Enforce docs update when src/tests change
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
           git fetch origin "${BASE_REF}" --depth=1
-          CHANGED_FILES=$(git diff --name-only FETCH_HEAD HEAD)
-
-          if echo "${CHANGED_FILES}" | grep -E '^(src/|tests/)'; then
-            if ! echo "${CHANGED_FILES}" | grep -E '^docs/'; then
-              echo "❌ Changes in src/tests require at least one updated file in docs/."
-              exit 1
-            fi
-          fi
+          make check-docs-coverage DOCS_BASE_REF=FETCH_HEAD
 
       # CI verifies; it never mutates the tree. Run `make fix` / `make format`
       # locally before pushing. `make check` covers format --check, ruff, bandit,

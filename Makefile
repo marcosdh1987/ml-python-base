@@ -289,12 +289,13 @@ typecheck:
 	@if [ ! -d .venv ]; then make install; fi
 	@. $(VENV_DIR)/bin/activate && mypy src/ scripts/
 
-# Full CI pipeline: read-only quality gate + skill-sync drift gate.
+# Full CI pipeline: read-only quality gate + skill-sync drift gate + docs gate.
 # CI must verify, not mutate — use `make fix`/`make format` locally instead.
 ci:
 	@echo "🚀 Running full CI pipeline (read-only)..."
 	@make check
 	@make check-sync
+	@make check-docs-coverage
 	@echo "✅ CI pipeline completed successfully!"
 
 # =============================================================================
@@ -455,6 +456,28 @@ sync-skills:
 check-sync:
 	@$(SKILLS_SYNC) check
 
+# Docs-coverage gate: changes under src/ or tests/ must ship with at least one
+# updated file under docs/. Same rule the PR workflow enforces; run locally so a
+# green `make ci` means a green CI. Diffs merge-base(DOCS_BASE_REF, HEAD) against
+# the working tree, so uncommitted changes count too. Skips (with a warning) when
+# DOCS_BASE_REF cannot be resolved, e.g. a clone without an origin remote.
+DOCS_BASE_REF ?= origin/main
+
+check-docs-coverage:
+	@if ! git rev-parse --verify --quiet "$(DOCS_BASE_REF)" >/dev/null; then \
+		echo "⚠️  Docs-coverage gate skipped: base ref '$(DOCS_BASE_REF)' not found."; \
+	else \
+		BASE=$$(git merge-base "$(DOCS_BASE_REF)" HEAD 2>/dev/null || echo "$(DOCS_BASE_REF)"); \
+		CHANGED_FILES=$$(git diff --name-only "$$BASE"); \
+		if echo "$$CHANGED_FILES" | grep -qE '^(src/|tests/)'; then \
+			if ! echo "$$CHANGED_FILES" | grep -qE '^docs/'; then \
+				echo "❌ Changes in src/tests require at least one updated file in docs/."; \
+				exit 1; \
+			fi; \
+		fi; \
+		echo "✅ Docs-coverage gate passed."; \
+	fi
+
 # Remove all external skills and reset native views to internal-only.
 purge-external-skills:
 	@$(SKILLS_SYNC) purge
@@ -476,7 +499,8 @@ help:
 	@echo "  make fix                  Automatically fix issues (ruff check + format)"
 	@echo "  make check                Read-only quality gate (CI-safe: format+lint+bandit+mypy+tests)"
 	@echo "  make typecheck            Static type checking with mypy"
-	@echo "  make ci                   Full read-only pipeline: check + check-sync"
+	@echo "  make ci                   Full read-only pipeline: check + check-sync + check-docs-coverage"
+	@echo "  make check-docs-coverage  Fail if src/tests changed without a docs/ update (vs origin/main)"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test                 Run all tests with coverage"
@@ -543,4 +567,4 @@ clean:
 .DEFAULT_GOAL := help
 
 # Declare phony targets
-.PHONY: init install setup-hooks run-dev run-api run-question run-interactive opencode opencode-doctor toolbelt-doctor build-api run-api-docker stop-docker build-fresh clean help generate-requirements run-batch-test run-batch-test-custom test test-unit format lint lint-fast fix fix-force check typecheck ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-agents render-adapters sync-skills check-sync purge-external-skills
+.PHONY: init install setup-hooks run-dev run-api run-question run-interactive opencode opencode-doctor toolbelt-doctor build-api run-api-docker stop-docker build-fresh clean help generate-requirements run-batch-test run-batch-test-custom test test-unit format lint lint-fast fix fix-force check typecheck ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-agents render-adapters sync-skills check-sync check-docs-coverage purge-external-skills

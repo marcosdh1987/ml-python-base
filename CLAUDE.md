@@ -155,8 +155,8 @@ Prefer system-enforced quality over model-only behavior:
 
 - Automation policy: `.github/automation.md`
 - Local sequence: `make format` -> `make fix`; CI-safe gate: `make check`.
-- CI is read-only (`make ci` = `make check` + `make check-sync`) — never relies on
-  CI to format or fix.
+- CI is read-only (`make ci` = `make check` + `make check-sync` +
+  `make check-docs-coverage`) — never relies on CI to format or fix.
 
 Check `Makefile` before suggesting commands.
 

@@ -32,9 +32,10 @@ developer or agent runs locally.
 reproduce the CI git environment locally, run pytest under
 `GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_COUNT=1
 GIT_CONFIG_KEY_0=user.useConfigOnly GIT_CONFIG_VALUE_0=true` (documented in
-`docs/harness-release-lifecycle.md`). Structural fix worth a follow-up: add a
-`check-docs-coverage` make target mirroring the workflow rule and fold it into
-`make ci`.
+`docs/harness-release-lifecycle.md`). Gap (1) is now closed structurally:
+`make check-docs-coverage` carries the rule once in the Makefile, `make ci`
+includes it, and the workflow calls the same target — a green `make ci` again
+means a green CI.
 
 ## Weak models need protocols front-loaded in the adapter file itself (issue #43) — 2026-08-14
 
