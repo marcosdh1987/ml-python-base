@@ -63,6 +63,14 @@ def _git(root: Path, *args: str) -> str:
     return out.stdout.strip()
 
 
+def _configure_identity(root: Path) -> None:
+    """Persist identity in the repo's local config so git commands run by the
+    script under test (which inherit the real environment, e.g. a CI runner
+    with no global config) can create commits and annotated tags."""
+    _git(root, "config", "user.name", "t")
+    _git(root, "config", "user.email", "t@t")
+
+
 _REGISTRY = """\
 schema_version = 1
 
@@ -112,6 +120,7 @@ def repo(tmp_path: Path) -> Path:
     _write(root, ".github/architecture.md", "# Architecture\nv1\n")
     _write(root, "Makefile", "check:\n\t@echo ok\n")
     _git(root, "init", "-q")
+    _configure_identity(root)
     _git(root, "add", "-A")
     _git(root, "commit", "-q", "-m", "base")
     return root
@@ -819,6 +828,7 @@ def publish_repo(tmp_path: Path) -> Path:
     _write(root, "skills-lock.json", "{}\n")
     _write(root, "uv.lock", "# lock\n")
     _git(root, "init", "-q")
+    _configure_identity(root)
     _git(root, "add", "-A")
     _git(root, "commit", "-q", "-m", "merged bump")
     _git(root, "branch", "-m", "main")
