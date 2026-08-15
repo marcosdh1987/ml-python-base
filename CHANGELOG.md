@@ -5,6 +5,14 @@ All notable changes to this template are documented here. The format is based on
 [Semantic Versioning](https://semver.org/). Downstream projects adopt a release with
 `make template-sync REF=vX.Y.Z` (see `docs/template-sync.md`).
 
+## [0.6.0]
+
+### Changed
+- feat(governance): front-load debugging protocol in opencode/codex adapters
+- fix(tests): set local git identity in release-test fixtures
+- docs: enhance learnings on CI environment parity and git identity issues
+- feat(docs): implement docs-coverage gate in Makefile and CI workflow
+
 ## [Unreleased]
 
 ### Added
