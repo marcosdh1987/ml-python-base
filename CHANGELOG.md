@@ -7,14 +7,6 @@ All notable changes to this template are documented here. The format is based on
 
 ## [0.6.0]
 
-### Changed
-- feat(governance): front-load debugging protocol in opencode/codex adapters
-- fix(tests): set local git identity in release-test fixtures
-- docs: enhance learnings on CI environment parity and git identity issues
-- feat(docs): implement docs-coverage gate in Makefile and CI workflow
-
-## [Unreleased]
-
 ### Added
 - **Front-loaded debugging protocol for opencode/codex adapters** (`OPENCODE.md`,
   `AGENTS.md`, `.github/skills/systematic_debugging.md`, `.github/standards.md`):
