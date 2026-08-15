@@ -5,6 +5,38 @@ All notable changes to this template are documented here. The format is based on
 [Semantic Versioning](https://semver.org/). Downstream projects adopt a release with
 `make template-sync REF=vX.Y.Z` (see `docs/template-sync.md`).
 
+## [Unreleased]
+
+### Added
+- **Front-loaded debugging protocol for opencode/codex adapters** (`OPENCODE.md`,
+  `AGENTS.md`, `.github/skills/systematic_debugging.md`, `.github/standards.md`):
+  a mandatory ordered checklist inserted before the skills block in both adapters —
+  repo-root confirmation before any read/edit, open-the-evidence grounding,
+  exact-failure restatement (exception, operands, call site), one-hypothesis-at-a-time
+  probing with a stop-and-reframe rule, a parse/compile gate after every edit batch,
+  targeted-test verification with an immediate lightest-executable fallback when the
+  preferred runner is unavailable, and an incremental-edit rule. Includes a "Do not"
+  section clarifying that `systematic_debugging` is a workflow to follow, not an agent
+  to invoke. The canonical loop lives in the skill and `standards.md` Bug-Fix
+  Discipline; the adapter copies are byte-identical (HEP-2026-000, #43).
+- **`make check-docs-coverage` — docs-coverage gate, now local and in CI**
+  (`Makefile`, `.github/workflows/docs-quality-guardrails.yml`,
+  `.github/automation.md`): the PR rule "changes in `src/` or `tests/` require at
+  least one updated file in `docs/`" previously lived only in the workflow YAML, so
+  a green local `make ci` could still fail CI. The logic now lives once in the
+  Makefile (`ci` includes it; the workflow calls the same target with
+  `DOCS_BASE_REF=FETCH_HEAD`), diffing merge-base against the working tree so
+  uncommitted changes count locally.
+
+### Fixed
+- **Release-flow tests failed on CI runners with no git identity**
+  (`tests/harness_release/test_harness_release.py`): the publish tests execute a
+  real `git tag -a` via the script under test, which inherits the process
+  environment; fixtures now persist `user.name`/`user.email` in each temp repo's
+  local config (`_configure_identity`) instead of relying on env-var identity that
+  only covered the tests' own git calls. Reproduction recipe documented in
+  `docs/harness-release-lifecycle.md`.
+
 ## [0.5.0]
 
 ### Added

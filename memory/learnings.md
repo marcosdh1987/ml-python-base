@@ -3,6 +3,62 @@
 > Non-obvious facts discovered while working: gotchas, why-it-is-this-way, dead ends
 > to avoid. Append new entries at the top. One fact per entry.
 
+## `make ci` is not a faithful mirror of CI: two gates only exist in the runner — 2026-08-14
+
+The PR for issue #43 needed two extra CI round-trips despite a green local
+`make check`, because two gates are invisible locally:
+
+1. **Docs-coverage guardrail.** The `enforce-docs-and-quality` workflow rejects any
+   PR that touches `src/` or `tests/` without updating at least one file under
+   `docs/`. The rule lives only in the workflow YAML (and as a Runtime Rule in the
+   adapter files) — no make target checks it, so `make ci` passes locally while CI
+   fails.
+2. **Git identity.** GitHub runners have no git config and an empty GECOS field, so
+   git cannot auto-detect an identity. Tests whose *subject under test* runs real
+   git commands (e.g. `harness_release.py` publish creating an annotated tag) pass
+   on macOS — where git auto-detects the OS user — and die in CI with
+   `fatal: empty ident name`. Env-var identity in test helpers is not enough; it
+   only covers the test's own git calls, not the script's subprocesses.
+
+**Why it matters:** a green local gate is necessary but not sufficient; both
+failures were structural (environment parity), not flaky, and will recur in any
+test or PR with the same shape. This also violates the repo's own
+"system-enforced over model-only" principle: the docs rule is enforced nowhere a
+developer or agent runs locally.
+**How to apply:** (1) if a diff touches `src/` or `tests/`, include a genuine
+`docs/` update before pushing; (2) fixtures for git-running code must persist
+`user.name`/`user.email` in the temp repo's *local config* (see
+`_configure_identity` in `tests/harness_release/test_harness_release.py`); (3) to
+reproduce the CI git environment locally, run pytest under
+`GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_COUNT=1
+GIT_CONFIG_KEY_0=user.useConfigOnly GIT_CONFIG_VALUE_0=true` (documented in
+`docs/harness-release-lifecycle.md`). Gap (1) is now closed structurally:
+`make check-docs-coverage` carries the rule once in the Makefile, `make ci`
+includes it, and the workflow calls the same target — a green `make ci` again
+means a green CI.
+
+## Weak models need protocols front-loaded in the adapter file itself (issue #43) — 2026-08-14
+
+Opencode runs with open-source/self-hosted models showed that pointers to skills
+are not reliably followed: agents thrashed on wrong workspace roots, drifted from
+the exact reported exception, skipped post-edit verification when the preferred
+runner was missing, and introduced parse errors mid-edit. The fix (HEP-2026-000)
+was a hybrid: canonical wording in governance (`.github/skills/systematic_debugging.md`
+Execution Rules + `standards.md` Bug-Fix Discipline gates) plus a condensed,
+byte-identical `## Debugging protocol` checklist inserted directly into `OPENCODE.md`
+and `AGENTS.md` **before** the generated skills block, so weak models see it early.
+
+**Why it matters:** for weak models, adapter-file placement and ordering is the
+enforcement mechanism — a rule that only lives behind a skill pointer effectively
+does not exist for them. Also: the issue's artifact paths (`.github/AGENTS.md`,
+`.github/opencode.json`) were stale; real adapters live at the repo root, and only
+the sentinel-delimited skills block is machine-owned (`make check-sync`).
+**How to apply:** when a future HEP targets adapter guidance, edit the hand-written
+prose outside the sentinels, keep multi-adapter copies byte-identical, leave the
+skill's frontmatter `description:` untouched unless all five adapters should regen,
+and always run `make sync-skills` after editing a skill body (the antigravity copy
+is hash-manifested). Source: HEP-2026-000 → `marcosdh1987/ml-python-base#43`.
+
 ## Governed workflow hardened from harness audit evidence (issue #35) — 2026-07-24
 
 The three core governance docs (`.github/architecture.md`, `standards.md`,

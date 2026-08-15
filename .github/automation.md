@@ -20,6 +20,10 @@ This file defines Level 3 enforcement so quality does not depend on model behavi
   auto-fixing of source).
 - `make check-sync` fails if any generated skill artifact or adapter skill
   region is stale relative to the governed sources in `.github/`.
+- `make check-docs-coverage` fails if `src/` or `tests/` changed (vs
+  `origin/main`, uncommitted changes included) without at least one updated file
+  under `docs/`. The PR workflow runs the same target, so the rule is enforced
+  identically locally and in CI.
 - `make format` and `make fix` are **local-only** — run them before pushing.
 
 ## Dependencies And The Drift Guard
@@ -42,7 +46,9 @@ model's verify loop running in that same `.venv` cannot detect it.
 
 - `make check` — read-only quality gate (use in CI).
 - `make check-sync` — skill-sync drift gate (use in CI).
-- `make ci` — full read-only pipeline (`check` + `check-sync`).
+- `make check-docs-coverage` — docs-coverage gate (use in CI).
+- `make ci` — full read-only pipeline (`check` + `check-sync` +
+  `check-docs-coverage`).
 - `make format` / `make fix` — local-only, mutate the tree.
 - `make lint` / `make test` — local helpers (mutating variants).
 
