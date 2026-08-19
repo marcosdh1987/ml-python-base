@@ -60,6 +60,35 @@ edit — that failure is the signal "stop planning, `Tab` to Build".
    `tetris_game/domain/board.py`…". Code is written by the local model.
 3. Stay in Build for tests and docs (`generate_e2e_tests`, `generate_implementation_docs`).
 
+## Foreign-workspace behavior (bench / harness runs)
+
+This OpenCode config is also mounted for benchmark runs whose working directory is
+a **foreign subject repo** (e.g. a SWE-bench checkout under `/app/workspace/...`)
+with none of this template's tooling: no `uv`, no template `Makefile`, sometimes no
+installed `pytest`. Since HEP-2026-000 (#47), the harness is repo-agnostic-first:
+
+- **Root pinning** (Debugging protocol step 1): the working root is derived from
+  `.git` / the failing test's path, not from template markers. A failed path is
+  never retried — one `find <root> -name <file>` re-derives it. This is what
+  eliminates the `/workspace` vs `/app/workspace` thrashing seen in audited runs.
+- **Runner preference ladder** (step 4): the subject repo's documented gate or
+  runner (`Makefile`, `tox.ini`, `scripts/`) → `python -m pytest <test> -x` →
+  direct execution of the real test file's functions. A self-written script that
+  approximates the test is never verification.
+- **verify-gate degradation** (`.opencode/plugin/verify-gate.ts`): the plugin
+  self-detects the template by `uv.lock` + `pyproject.toml` at the workspace root.
+  In the template it keeps its full behavior (ruff autofix per edit, `make check`
+  on session idle). In a foreign workspace it only parse-checks edited files with
+  plain `python -m py_compile`, never reformats subject code, never runs the
+  subject repo's Makefile, and suppresses "command not found" noise so a missing
+  tool is not reported to the model as a code error.
+- **Closure discipline** (step 7): "done" requires a green rerun of the exact
+  step-4 command; a success claim without an executed verification is a defect.
+
+The `## Debugging protocol` and `## Working loop` blocks are byte-identical
+between `OPENCODE.md` and `AGENTS.md`; `tests/governance/test_adapter_protocol_parity.py`
+enforces the parity mechanically.
+
 ## Quick reference (`.env`)
 
 ```bash

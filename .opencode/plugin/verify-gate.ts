@@ -18,16 +18,29 @@
  *      read-only gate (`make check`) and toast PASS/FAIL. `make check` also
  *      rebuilds .venv from uv.lock, so a red gate also flags undeclared deps.
  *
+ * Foreign-workspace degradation: this harness config is also mounted for bench
+ * runs whose working directory is a foreign subject repo (no uv.lock, no
+ * template Makefile). There, uv/ruff/make either do not exist or — worse —
+ * `make check` would run the SUBJECT repo's Makefile. So both layers self-detect
+ * the template (uv.lock + pyproject.toml at the root); outside it, layer 1 only
+ * parse-checks the edited file with plain python and layer 2 is disabled.
+ * Interpreter-missing noise (exit 127 "command not found") is never surfaced —
+ * a missing tool is not a code error and must not be reported as one.
+ *
  * `import type` is erased at runtime, so this file has no runtime dependency on
  * the (gitignored) @opencode-ai/plugin package.
  */
+import { existsSync } from "node:fs";
 import type { Plugin } from "@opencode-ai/plugin";
 
 const PYTHON_FILE = /\.py$/;
 const EDIT_TOOLS = new Set(["edit", "write"]);
+const COMMAND_NOT_FOUND = 127;
 
 export const VerifyGate: Plugin = async ({ $, client, directory }) => {
   const run = (cmd: ReturnType<typeof $>) => cmd.cwd(directory).quiet().nothrow();
+  const isTemplate =
+    existsSync(`${directory}/uv.lock`) && existsSync(`${directory}/pyproject.toml`);
 
   return {
     // Layer 1: deterministic auto-fix + same-turn error surfacing for Python.
@@ -36,22 +49,36 @@ export const VerifyGate: Plugin = async ({ $, client, directory }) => {
       const filePath = input.args?.filePath;
       if (typeof filePath !== "string" || !PYTHON_FILE.test(filePath)) return;
 
-      // Apply only safe autofixes + formatting (never --unsafe-fixes here).
-      await run($`uv run ruff check --fix ${filePath}`);
-      await run($`uv run ruff format ${filePath}`);
-
-      // Report what autofix could not resolve (undefined names, bad imports,
-      // syntax errors) so the model corrects it immediately.
-      const lint = await run($`uv run ruff check ${filePath}`);
-      const compile = await run($`uv run python -m py_compile ${filePath}`);
-
       const problems: string[] = [];
-      if (compile.exitCode !== 0) {
-        problems.push("py_compile:\n" + compile.stderr.toString().trim());
+
+      if (isTemplate) {
+        // Apply only safe autofixes + formatting (never --unsafe-fixes here).
+        await run($`uv run ruff check --fix ${filePath}`);
+        await run($`uv run ruff format ${filePath}`);
+
+        // Report what autofix could not resolve (undefined names, bad imports,
+        // syntax errors) so the model corrects it immediately.
+        const lint = await run($`uv run ruff check ${filePath}`);
+        const compile = await run($`uv run python -m py_compile ${filePath}`);
+
+        if (compile.exitCode !== 0) {
+          problems.push("py_compile:\n" + compile.stderr.toString().trim());
+        }
+        if (lint.exitCode !== 0) {
+          problems.push("ruff:\n" + lint.stdout.toString().trim());
+        }
+      } else {
+        // Foreign workspace: never reformat a subject repo (it can corrupt the
+        // expected patch); parse-check only, with plain python.
+        let compile = await run($`python3 -m py_compile ${filePath}`);
+        if (compile.exitCode === COMMAND_NOT_FOUND) {
+          compile = await run($`python -m py_compile ${filePath}`);
+        }
+        if (compile.exitCode !== 0 && compile.exitCode !== COMMAND_NOT_FOUND) {
+          problems.push("py_compile:\n" + compile.stderr.toString().trim());
+        }
       }
-      if (lint.exitCode !== 0) {
-        problems.push("ruff:\n" + lint.stdout.toString().trim());
-      }
+
       if (problems.length > 0) {
         output.output +=
           `\n\n[verify-gate] ${filePath} still has issues after autofix. ` +
@@ -61,8 +88,10 @@ export const VerifyGate: Plugin = async ({ $, client, directory }) => {
     },
 
     // Layer 2: end-of-turn quality gate. A red gate means "not done".
+    // Template-only: never run a foreign subject repo's Makefile.
     event: async ({ event }) => {
       if (event.type !== "session.idle") return;
+      if (!isTemplate) return;
       const gate = await run($`make check`);
       const passed = gate.exitCode === 0;
       try {

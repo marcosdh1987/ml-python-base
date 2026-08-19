@@ -23,7 +23,8 @@
 7. **Use the edit tool, not a code block.** Apply changes with the edit tool; do not paste
    full files into chat.
 8. **One increment per chat — then start a NEW chat.** End each validated increment with one
-   line: `✅ DONE: <what works>. NEXT: <one line>. Open a NEW chat to continue.` Do not run
+   line: `✅ DONE: <what works>. NEXT: <one line>. Open a NEW chat to continue.` Emit
+   `✅ DONE` only after the rule-5 Validation command was executed and passed. Do not run
    many increments in one chat: long chats get auto-compacted and you lose the code state —
    the #1 cause of late-conversation breakage.
 9. **Never inventory the file.** Do not output "what's implemented / what's missing"

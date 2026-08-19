@@ -5,6 +5,47 @@ All notable changes to this template are documented here. The format is based on
 [Semantic Versioning](https://semver.org/). Downstream projects adopt a release with
 `make template-sync REF=vX.Y.Z` (see `docs/template-sync.md`).
 
+## [0.7.0]
+
+### Changed
+- **Repo-agnostic debugging protocol and verification ladder** (`OPENCODE.md`,
+  `AGENTS.md`, `.github/skills/systematic_debugging.md`,
+  `.github/skills/verify_changes.md`, `.github/standards.md`, `LOCAL_AGENT.md`):
+  the front-loaded adapter protocol no longer assumes this template's layout.
+  Root pinning now derives the working root from `.git` / the failing test's path
+  (template markers cited as the local example) and forbids retrying a failed
+  path (one `find`, use its output). A new step requires reproducing the failure
+  through the repo's own documented runner **before editing**, with a strict
+  fallback ladder (documented gate/runner → `python -m pytest <test> -x` → direct
+  execution of the real test functions) that explicitly bans self-written
+  synthetic test scripts. Failed edits must be retried from a narrow ~10-line
+  re-read with a smaller hunk instead of free-handed. Closure requires a green
+  rerun of the exact reproduction command; after a failed verification the agent
+  must change code or advance the diagnostic, never re-read unchanged code.
+  `standards.md` Bug-Fix Discipline adds three matching **workflow failure
+  signals** (synthetic-script verification, done-claims without an executed
+  command, post-failure re-read/retry loops), `verify_changes` gains the runner
+  ladder and an honest-closure rule, and `LOCAL_AGENT.md` ties the `✅ DONE`
+  line to an executed validation command. Adapter copies remain byte-identical
+  (HEP-2026-000, #47).
+- **verify-gate plugin degrades safely outside the template**
+  (`.opencode/plugin/verify-gate.ts`): the plugin now self-detects the template
+  (`uv.lock` + `pyproject.toml` at the workspace root). In a foreign bench
+  workspace it skips ruff (never reformats subject code), parse-checks edited
+  files with plain `python -m py_compile`, suppresses exit-127 "command not
+  found" noise (previously injected into the model's tool output as a fake
+  `py_compile` error), and no longer runs `make check` on session idle — which
+  previously could execute a foreign subject repo's Makefile (HEP-2026-000, #47).
+
+### Added
+- **Adapter-prose parity test** (`tests/governance/test_adapter_protocol_parity.py`):
+  asserts the `## Debugging protocol` and `## Working loop` sections stay
+  byte-identical between `OPENCODE.md` and `AGENTS.md` — the hand-written region
+  that `make check-sync` cannot guard (HEP-2026-000, #47).
+- **Foreign-workspace behavior documentation** (`docs/opencode-workflow.md`):
+  how the harness behaves when mounted over a bench subject repo — root pinning,
+  the runner preference ladder, verify-gate degradation, closure discipline.
+
 ## [0.6.0]
 
 ### Added

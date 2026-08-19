@@ -3,6 +3,32 @@
 > Non-obvious facts discovered while working: gotchas, why-it-is-this-way, dead ends
 > to avoid. Append new entries at the top. One fact per entry.
 
+## Adapter debugging protocol must be repo-agnostic (issue #47) — 2026-08-18
+
+The #43 protocol was over-fit to this template: it defined the repo root as
+`Makefile` + `pyproject.toml` + `src/` and verified with `uv run ...` /
+`make check`. Bench runs mount this OpenCode config over foreign subject repos
+(SWE-bench openlibrary/ansible under `/app/workspace/...`) where none of that
+holds — audited qwen3.5-9b runs thrashed on `/workspace` vs `/app/workspace`
+paths, gave up when `python -m pytest` reported `No module named pytest`, or
+"verified" with self-written `/tmp/test_all.py` scripts and closed with ✅ DONE
+and zero executed tests. Worse, `verify-gate.ts` appended `uv`'s "command not
+found" stderr into the model's tool output labeled `py_compile:`, and its
+session-idle `make check` would have executed the SUBJECT repo's Makefile
+(ansible has one).
+
+**Why it matters:** harness guidance written against one repo's layout actively
+misleads weak models everywhere else; mechanical gates must know which workspace
+they are in before running repo-specific commands.
+**How to apply:** derive the working root from `.git` / the failing test's path,
+never from template markers; verify via the subject repo's documented runner →
+`python -m pytest` → direct execution of the real test functions (synthetic
+scripts are a workflow failure signal, `standards.md`); `verify-gate.ts`
+self-detects the template via `uv.lock` + `pyproject.toml` and degrades to plain
+`python -m py_compile` elsewhere; adapter-prose parity between `OPENCODE.md` and
+`AGENTS.md` is now enforced by `tests/governance/test_adapter_protocol_parity.py`.
+Source: HEP-2026-000 → `marcosdh1987/ml-python-base#47`.
+
 ## `make ci` is not a faithful mirror of CI: two gates only exist in the runner — 2026-08-14
 
 The PR for issue #43 needed two extra CI round-trips despite a green local

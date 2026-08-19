@@ -13,45 +13,50 @@ Always read and apply these files before generating code or plans:
 ## Working loop
 
 Default working loop for this repository: **Ground → Plan → Delegate → Verify →
-Compound.** Read `memory/context.md` and `memory/learnings.md` before starting;
-explore before editing; verify with `make check` / tests; record decisions in
-`docs/adr/` and durable learnings in `memory/`. Full guide:
-`docs/agentic-workflow.md`.
+Compound.** Read `memory/context.md` and `memory/learnings.md` before starting
+when they exist in the workspace (in a foreign workspace these instructions
+already carry the rules — proceed); explore before editing; verify with the
+repo's own gate / tests (here: `make check`); record decisions in `docs/adr/`
+and durable learnings in `memory/`. Full guide: `docs/agentic-workflow.md`.
 
 ## Debugging protocol
 
 Mandatory ordered checklist for any bug fix or failing test. Canonical loop:
 `.github/skills/systematic_debugging.md` (a workflow to follow — see Do not, below).
 
-1. **Confirm the repository root first.** Run `pwd` and `ls`; you are at the root
-   only if you see `Makefile`, `pyproject.toml`, and `src/`. All paths are
-   relative to this root. Do not read or edit anything before confirming.
-2. **Open the evidence.** From the confirmed root, read the failing test file and
-   the implementation it exercises before planning any change.
+1. **Pin the working root first.** Run `pwd` and `ls`. The root is the directory
+   that contains the failing code — look for `.git` or the failing test's path
+   (in this template: `Makefile`, `pyproject.toml`, `src/`). State it once and
+   prefix every later path with it. If a path errors, do not retry it: run one
+   `find <root> -name <file>` and use the path it prints.
+2. **Open the evidence.** From that root, read the failing test file and the
+   implementation it exercises before planning any change.
 3. **Restate the failure.** In 1–2 lines: the exact exception type and message,
    the operand values involved, and the failing call site (file:line). Propose no
    fix before this restatement.
-4. **One hypothesis at a time.** State a single root-cause hypothesis and probe it
+4. **Reproduce with the repo's own runner.** Before editing, run the failing test
+   once via the repo's documented gate or runner (check `Makefile`, `tox.ini`,
+   `scripts/`; here: `make test` / `uv run pytest`). If none, use
+   `python -m pytest <test> -x`; if pytest is missing, execute the real test
+   file's functions directly. Never write a new script that approximates the test.
+5. **One hypothesis at a time.** State a single root-cause hypothesis and probe it
    with one command. After two probes that fail to confirm, stop, re-read the
    evidence, and reframe — do not stack guesses or edits.
-5. **Parse-check every edit batch.** After each batch of edits, run
-   `uv run python -m py_compile <changed files>` (or `make lint`) before any
-   smoke test. Never build on a file that does not parse.
-6. **Run the nearest test.** Run the most targeted relevant test
-   (`uv run pytest tests/<file> -k <case>`). If the preferred runner is
-   unavailable, immediately fall back to the lightest check that *executes* the
-   code (e.g. `uv run python -c "import mod; mod.fn(...)"`) — do not stop, and
-   never treat a parse/syntax check alone as verification.
-7. **Small edits until stable.** Keep edits minimal and incremental until the
-   current failure is verified fixed. Do not rewrite files whose behavior you
-   have not validated.
+6. **Failed edit → smaller edit.** If an edit does not apply, re-read only the
+   ~10 lines around the target, rebuild the old text from that exact output, and
+   retry with a smaller hunk. After each edit batch, parse-check the changed
+   files (`python -m py_compile <files>`) before any test run.
+7. **Close only on a green rerun.** Re-run the exact step-4 command; done means it
+   passes. If it still fails, make a new change or take the next diagnostic step —
+   never re-read unchanged code, and never claim success without that rerun.
 
 Do not:
 
 - Do not invoke `systematic_debugging` as an agent or subagent. It is a skill
   (a workflow you read and follow); agents live in `.github/agents/`.
 - Do not declare a diagnosis without the step-3 restatement.
-- Do not substitute a syntax/parse check for running a test.
+- Do not substitute a parse check, a re-read, or a synthetic script for running
+  the real test.
 
 ## Level 2 — Operational Skills
 
@@ -119,6 +124,10 @@ your own discipline:
 - **When the turn ends** it runs `make check`. A `make check FAILED` toast means
   **the work is not done** — keep going until it is green. `make check` also
   rebuilds `.venv` from `uv.lock`, so it catches undeclared dependencies too.
+- **In a foreign workspace** (no `uv.lock` + `pyproject.toml` at the root — e.g. a
+  bench subject repo) the gate degrades: it skips ruff and `make check` and only
+  parse-checks edited files with `python -m py_compile`. The Debugging protocol
+  above is then your only verification discipline — follow it.
 
 ### Non-negotiable rules
 
@@ -159,7 +168,7 @@ Use explicit orchestration for complex tasks:
 ## Level 5 — Agents and SDLC
 
 - Governed, tool-agnostic agents live in `.github/agents/`; OpenCode native agents
-  are generated into `.opencode/agent/` (refresh with `make sync-agents`).
+  are generated into `.opencode/agents/` (refresh with `make sync-agents`).
 - The lifecycle (plan -> implement -> test -> document -> review) and its `make`
   exit gates are defined in `.github/sdlc.md`.
 - Runtime/model portability for self-hosted fallback (Ollama / LM Studio) and the
@@ -168,7 +177,7 @@ Use explicit orchestration for complex tasks:
 ## Models and Providers
 
 Provider/model config is env-driven in `opencode.json` (`{env:...}` interpolation):
-self-hosted `ollama` / `lmstudio` plus built-in `openai` and `opencode` (Zen). Set
+a LiteLLM `gateway`, `nvidia` NIM, and self-hosted `ollama` / `lmstudio`. Set
 hosts and models in `.env` (see `.env.example`); launch with `make opencode` and
 verify endpoints with `make opencode-doctor`. Full guide: `.github/portability.md`.
 
