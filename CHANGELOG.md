@@ -5,6 +5,58 @@ All notable changes to this template are documented here. The format is based on
 [Semantic Versioning](https://semver.org/). Downstream projects adopt a release with
 `make template-sync REF=vX.Y.Z` (see `docs/template-sync.md`).
 
+## [0.8.0]
+
+Lessons back-ported from the organizational release of this template
+(`xmartlabs/sdlc-ml-python-template` v1.0.0). Distribution and open-source
+readiness work; no functional change to the harness.
+
+### Added
+- **Apache-2.0 licence and third-party attribution** (`LICENSE`, `NOTICE`): the
+  repository previously carried no licence at all. `NOTICE` attributes the twelve
+  skills vendored under `.github/skills-external/` — eight from
+  [obra/superpowers](https://github.com/obra/superpowers) (MIT),
+  [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) (MIT),
+  [the-elements-of-style](https://github.com/obra/the-elements-of-style) (Public
+  Domain), and two that are first-party. All inbound licences are compatible with
+  Apache-2.0 outbound.
+- **Declared provenance for vendored skills** (`adapters/registry.toml`,
+  `skills_sync/config.py`, `skills_sync/lockfile.py`): a new `[external_skill]`
+  table records `upstream` and `license` per skill, which `make sync-skills` now
+  emits into every `skills-lock.json` entry. An undeclared skill renders as
+  `UNKNOWN` and fails `make check`, so redistribution rights cannot silently
+  lapse. Documented in `docs/skills-management.md`.
+- **Community and governance files**: `SECURITY.md` (private vulnerability
+  reporting), `CONTRIBUTING.md`, `.github/CODEOWNERS`,
+  `.github/PULL_REQUEST_TEMPLATE.md`.
+
+### Changed
+- **CI runs with least privilege** (both workflows): added
+  `permissions: contents: read`. Previously both inherited the repository
+  default, which is often read/write on every scope.
+- **Release manifests name the repository being released**
+  (`scripts/harness_release.py`): the hardcoded `REPOSITORY` constant is now
+  `repository()`, resolving from `HARNESS_RELEASE_REPOSITORY`, then the `origin`
+  remote, then a default. Forks and downstream projects stamp their own slug.
+- **README states what the repository is**: a template shipping an AI harness and
+  a skills-projection engine, not an ML application. Repaired two `U+FFFD`
+  corruptions, one of which had swallowed the "Dev Containers" heading into a
+  code fence.
+- **English-only code artifacts** (`pyproject.toml`, `.gitignore`,
+  `.devcontainer/*`): translated the remaining Spanish comments and the project
+  description, per the repository's own Runtime Rules.
+- **`.env.example` flags the gateway aliases as an example topology** tied to one
+  LiteLLM instance, so template consumers know to replace them.
+
+### Removed
+- **Dead application scaffolding** (`Makefile`, `README.md`): the
+  `run-dev`/`run-api`/`run-question`/`run-interactive` targets and the Docker
+  section referenced `api.py`, `main.py`, `Dockerfile.api`, `langgraph` and
+  `uvicorn` — none of which exist in the template. The `run-batch-test` help
+  lines pointed at targets that were never defined.
+- **Stale `.gitignore` rules** from an unrelated earlier project (`webapp01/`,
+  `dash/`, `milvus/`, `.promptflow/`, `.langgraph_api/`, notebook data paths).
+
 ## [0.7.0]
 
 ### Changed
