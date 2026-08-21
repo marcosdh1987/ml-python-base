@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -47,7 +48,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REGISTRY = REPO_ROOT / "adapters" / "registry.toml"
 SCHEMA_PATH = REPO_ROOT / "schemas" / "harness-release-v1.schema.json"
-REPOSITORY = "marcosdh1987/ml-python-base"
+# Fallback only. `repository()` prefers the env override, then the real `origin`
+# remote, so a fork or a downstream project stamps its OWN slug into release
+# manifests instead of inheriting the template author's.
+DEFAULT_REPOSITORY = "marcosdh1987/ml-python-base"
+REPOSITORY_ENV_VAR = "HARNESS_RELEASE_REPOSITORY"
 
 # Exit codes mirror the harness lifecycle contract (plan §9.1).
 EXIT_OK = 0
@@ -119,6 +124,41 @@ def run(
         check=check,
         capture_output=capture,
     )
+
+
+def repository(root: Path | None = None) -> str:
+    """Return the ``owner/name`` slug this release belongs to.
+
+    Resolution order: ``HARNESS_RELEASE_REPOSITORY`` env var, the ``origin``
+    remote, then ``DEFAULT_REPOSITORY``. Release manifests are traceability
+    artifacts, so they must name the repository actually being released.
+    """
+    override = os.environ.get(REPOSITORY_ENV_VAR, "").strip()
+    if override:
+        return override
+
+    try:
+        result = run(
+            ["git", "remote", "get-url", "origin"],
+            root,
+            check=False,
+            capture=True,
+        )
+    except OSError:  # pragma: no cover - git absent from PATH
+        return DEFAULT_REPOSITORY
+    if result.returncode != 0:
+        return DEFAULT_REPOSITORY
+
+    return _slug_from_remote(result.stdout.strip()) or DEFAULT_REPOSITORY
+
+
+def _slug_from_remote(url: str) -> str:
+    """Extract ``owner/name`` from an SSH or HTTPS GitHub remote URL."""
+    if not url:
+        return ""
+    url = url.removesuffix(".git")
+    match = re.search(r"[:/]([^/:]+/[^/]+)$", url)
+    return match.group(1) if match else ""
 
 
 # --------------------------------------------------------------------------- #
@@ -896,7 +936,7 @@ def write_release_manifest(
     commit = runner(["git", "rev-parse", ref], root, capture=True).stdout.strip()
     governance, _platform, protocol = load_sync_policy(root)
     manifest = build_release_manifest(
-        repository=REPOSITORY,
+        repository=repository(),
         version=version,
         commit=commit,
         published_at=published_at,

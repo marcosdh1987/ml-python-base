@@ -4,6 +4,12 @@ name: Release Check
 # candidate release and NEVER publishes: no commit, tag, push, or GitHub Release is
 # created here. Tagging and publication stay manual (see docs/harness-release-lifecycle.md).
 
+# Least privilege: both jobs only read the repository. Without this key the
+# workflow inherits the repository/organization default, which is often
+# read/write for every scope.
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
     inputs:

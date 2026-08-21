@@ -1,5 +1,11 @@
 name: Docs and Quality Guardrails
 
+# Least privilege: both jobs only read the repository. Without this key the
+# workflow inherits the repository/organization default, which is often
+# read/write for every scope.
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches:

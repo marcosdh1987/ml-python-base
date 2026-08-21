@@ -115,6 +115,50 @@ What it does:
 9. Projects governed agents (`.github/agents/`) into `.claude/agents/` (markdown),
    `.opencode/agents/` (markdown + `permission` map), and `.codex/agents/` (TOML)
 
+## Provenance of vendored skills
+
+Everything under `.github/skills-external/` is third-party content this repository
+**redistributes**. Public availability is not a licence, so every vendored skill must
+declare where it came from and under what terms.
+
+The declaration lives in the `[external_skill]` table of `adapters/registry.toml`:
+
+```toml
+[external_skill.brainstorming]
+upstream = "https://github.com/obra/superpowers"
+license = "MIT"
+```
+
+`make sync-skills` copies those two fields into each entry of `skills-lock.json`, so
+the lockfile is the machine-readable redistribution record:
+
+```json
+"brainstorming": {
+  "source": "synced-local",
+  "sourceType": "directory",
+  "upstream": "https://github.com/obra/superpowers",
+  "license": "MIT",
+  ...
+}
+```
+
+A skill with no registry entry renders as `"upstream": "UNKNOWN"` and
+`"license": "UNKNOWN"`. That is deliberate — an unestablished origin must be visible
+rather than silently omitted — and `make check` fails on it, because
+`tests/skills_sync/test_config.py` asserts that no vendored skill is UNKNOWN.
+
+When you add an external skill:
+
+1. Find its upstream repository and its licence. Verify the actual `LICENSE` file;
+   do not trust a README badge or a search result.
+2. Add an `[external_skill.<name>]` entry to `adapters/registry.toml`.
+3. Add the attribution (and the full licence text, for MIT/BSD-style licences) to the
+   root `NOTICE` file, which Apache-2.0 §4 requires us to carry.
+4. Run `make sync-skills`, then `make check`.
+
+If you cannot establish the licence, do not vendor the skill. Use
+`make purge-external-skills` to reset.
+
 ## Adapter skill regions and the drift gate
 
 Each adapter file carries a machine-managed block between sentinels:

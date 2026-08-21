@@ -41,6 +41,35 @@ def load_registry(path: Path = DEFAULT_REGISTRY_PATH) -> Registry:
     )
 
 
+def load_external_skill_provenance(
+    path: Path = DEFAULT_REGISTRY_PATH,
+) -> dict[str, dict[str, str]]:
+    """Return ``{skill_name: {"upstream": ..., "license": ...}}`` from the registry.
+
+    Redistribution metadata for vendored skills. Missing or unreadable registry
+    yields an empty map, which renders as "UNKNOWN" in the lock rather than
+    failing the sync — an unknown origin must be visible, not fatal.
+    """
+    if not path.is_file():
+        return {}
+    try:
+        raw = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, OSError):
+        return {}
+
+    block = raw.get("external_skill", {})
+    if not isinstance(block, dict):
+        return {}
+    return {
+        str(name): {
+            "upstream": str(entry.get("upstream", "UNKNOWN")),
+            "license": str(entry.get("license", "UNKNOWN")),
+        }
+        for name, entry in block.items()
+        if isinstance(entry, dict)
+    }
+
+
 def _parse_governance(block: dict) -> Governance:
     files = tuple(block.get("files", ()))
     return Governance(

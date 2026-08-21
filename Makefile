@@ -162,34 +162,6 @@ test-unit:
 	@. $(VENV_DIR)/bin/activate && PYTHONPATH=${PWD}/src pytest tests/ -v
 
 # =============================================================================
-# APPLICATION EXECUTION
-# =============================================================================
-
-# Start LangGraph development server
-run-dev:
-	@echo "🚀 Starting development server..."
-	@if [ ! -d .venv ]; then make install; fi
-	@. $(VENV_DIR)/bin/activate && langgraph dev
-
-# Start FastAPI server
-run-api:
-	@echo "🚀 Starting API server..."
-	@if [ ! -d .venv ]; then make install; fi
-	@. $(VENV_DIR)/bin/activate && PYTHONPATH=${PWD} uvicorn api:app --reload --host 0.0.0.0 --port 8008 --log-level debug
-
-# Run CLI with a predefined question
-run-question:
-	@echo "🚀 Running a single question"
-	@if [ ! -d .venv ]; then make install; fi
-	@. $(VENV_DIR)/bin/activate && PYTHONPATH=${PWD}/src python main.py --question "What can you help me with?"
-
-# Start interactive CLI mode
-run-interactive:
-	@echo "🚀 Starting interactive CLI mode"
-	@if [ ! -d .venv ]; then make install; fi
-	@. $(VENV_DIR)/bin/activate && PYTHONPATH=${PWD}/src python main.py --interactive
-
-# =============================================================================
 # OPENCODE RUNTIME (self-hosted / cloud, configured via .env)
 # =============================================================================
 
@@ -223,44 +195,6 @@ opencode-doctor:
 # Inspect the local Claude toolbelt: CLIs and optional service endpoints.
 toolbelt-doctor:
 	@python3 scripts/toolbelt_doctor.py
-
-# =============================================================================
-# DOCKER BUILD AND DEPLOYMENT
-# =============================================================================
-
-# Docker configuration variables
-IMG_NAME ?= ml-python-base
-IMAGE_TAG ?= latest
-CONTAINER_NAME ?= ml-python-base-server
-API_PORT ?= 8008
-
-# Enable Docker BuildKit
-export DOCKER_BUILDKIT=1
-
-# Build API Docker image
-build-api:
-	@echo "🔨 Building FastAPI Docker image (using Dockerfile.api)..."
-	@docker build --platform=linux/amd64 -t ${IMG_NAME}:${IMAGE_TAG} -f Dockerfile.api .
-	@echo "✅ FastAPI Docker image built successfully!"
-
-# Run Docker container
-run-api-docker:
-	@echo "🚀 Running Docker container..."
-	@docker run --platform=linux/amd64 -e ENV=production -d -p ${API_PORT}:${API_PORT} --env-file .env ${IMG_NAME}:${IMAGE_TAG}
-	@echo "✅ Docker container running at http://localhost:${API_PORT}!"
-
-# Build without cache
-build-fresh:
-	@echo "🔨 Building Docker image without cache..."
-	@docker build --no-cache --platform=linux/amd64 -t ${IMG_NAME}:${IMAGE_TAG} -f Dockerfile.api .
-	@echo "✅ Docker image built successfully!"
-
-# Stop Docker container
-stop-docker:
-	@echo "🛑 Stopping Docker container..."
-	@docker stop ${CONTAINER_NAME} 2>/dev/null || true
-	@docker rm ${CONTAINER_NAME} 2>/dev/null || true
-	@echo "✅ Container stopped!"
 
 # =============================================================================
 # USEFUL COMMANDS
@@ -505,14 +439,6 @@ help:
 	@echo "Testing:"
 	@echo "  make test                 Run all tests with coverage"
 	@echo "  make test-unit            Run unit tests only"
-	@echo "  make run-batch-test       Run batch tests against API (dataset v1)"
-	@echo "  make run-batch-test-custom Run batch tests with custom parameters"
-	@echo ""
-	@echo "Application Execution (Local):"
-	@echo "  make run-dev             Start LangGraph development server"
-	@echo "  make run-api             Start FastAPI server"
-	@echo "  make run-question        Test with a predefined question"
-	@echo "  make run-interactive     Start interactive CLI mode"
 	@echo ""
 	@echo "OpenCode (self-hosted / cloud, via .env):"
 	@echo "  make opencode            Launch opencode TUI with .env loaded"
@@ -520,17 +446,6 @@ help:
 	@echo ""
 	@echo "Claude Toolbelt:"
 	@echo "  make toolbelt-doctor     Check MCP-adjacent CLIs and optional local services"
-	@echo ""
-	@echo "Docker:"
-	@echo "  make build-api           Build API Docker image"
-	@echo "  make build-fresh         Build without cache"
-	@echo "  make run-api-docker      Run API in Docker container"
-	@echo "  make stop-docker         Stop Docker container"
-	@echo ""
-	@echo "Service URLs:"
-	@echo "  🚀 FastAPI: http://localhost:8008"
-	@echo "  📖 API Documentation: http://localhost:8008/docs"
-	@echo "  🔍 Agent Discovery: http://localhost:8008/.well-known/agent.json"
 	@echo ""
 	@echo "Release (template maintainers):"
 	@echo "  make version             Show pyproject version, latest tag, pending release"
@@ -567,4 +482,4 @@ clean:
 .DEFAULT_GOAL := help
 
 # Declare phony targets
-.PHONY: init install setup-hooks run-dev run-api run-question run-interactive opencode opencode-doctor toolbelt-doctor build-api run-api-docker stop-docker build-fresh clean help generate-requirements run-batch-test run-batch-test-custom test test-unit format lint lint-fast fix fix-force check typecheck ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-agents render-adapters sync-skills check-sync check-docs-coverage purge-external-skills
+.PHONY: init install setup-hooks opencode opencode-doctor toolbelt-doctor clean help generate-requirements test test-unit format lint lint-fast fix fix-force check typecheck ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-agents render-adapters sync-skills check-sync check-docs-coverage purge-external-skills

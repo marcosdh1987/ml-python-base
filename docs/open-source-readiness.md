@@ -25,7 +25,11 @@ publicly available. Each item must be confirmed as clear before publishing.
 
 - [ ] `.github/skills/` contains only generic, reusable skills safe for public use.
 - [ ] `.github/skills-external/` contains only vendored skills from public sources.
-      Verify the license of each vendored skill allows redistribution.
+      Verify the license of each vendored skill allows redistribution. Origin and
+      licence are declared per skill in the `[external_skill]` table of
+      `adapters/registry.toml`, emitted into `skills-lock.json`, and attributed in
+      `NOTICE`; `make check` fails if any vendored skill has an UNKNOWN origin (see
+      `docs/skills-management.md`).
 - [ ] No commercially sensitive prompts, instructions, or business logic appear in
       governance files or adapter files.
 
@@ -41,7 +45,7 @@ publicly available. Each item must be confirmed as clear before publishing.
 ## Generated and vendored content
 
 - [ ] `skills-lock.json` contains only public skill references (no private registry
-      URLs).
+      URLs), each carrying an `upstream` and a `license` field.
 - [ ] `uv.lock` pins only packages from public indexes.
 - [ ] No generated files contain embedded secrets or internal paths.
 
@@ -56,8 +60,12 @@ publicly available. Each item must be confirmed as clear before publishing.
 
 ## License
 
-- [ ] A `LICENSE` file is present at the repo root.
+- [ ] A `LICENSE` file is present at the repo root. This template ships Apache-2.0
+      plus a `NOTICE` file carrying third-party attribution; a derived project that
+      changes the licence must keep the vendored-skill attributions.
 - [ ] The chosen license is compatible with all vendored skills and dependencies.
+      (For the template itself: inbound is MIT and Public Domain only, both
+      compatible with Apache-2.0 outbound.)
 - [ ] The license is confirmed with the team or legal counsel before publishing.
 
 ---

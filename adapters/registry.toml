@@ -101,3 +101,64 @@ link_strategy = "none"
 needs_manifest = false
 adapter_file = ".github/copilot-instructions.md"
 adapter_template = "copilot.md.j2"
+
+# --- External skill provenance ------------------------------------------------
+# Redistribution record for every vendored skill under `.github/skills-external/`.
+# `make sync-skills` copies these fields into `skills-lock.json`; the human-readable
+# counterpart is the root `NOTICE` file.
+#
+# A skill with no entry here renders as "UNKNOWN" in the lock. That is the signal to
+# establish its origin BEFORE redistributing it — public availability is not a licence.
+# Verified 2026-08-20 against the upstream repositories.
+
+[external_skill.brainstorming]
+upstream = "https://github.com/obra/superpowers"
+license = "MIT"
+
+[external_skill.executing-plans]
+upstream = "https://github.com/obra/superpowers"
+license = "MIT"
+
+[external_skill.finishing-a-development-branch]
+upstream = "https://github.com/obra/superpowers"
+license = "MIT"
+
+[external_skill.requesting-code-review]
+upstream = "https://github.com/obra/superpowers"
+license = "MIT"
+
+[external_skill.subagent-driven-development]
+upstream = "https://github.com/obra/superpowers"
+license = "MIT"
+
+[external_skill.test-driven-development]
+upstream = "https://github.com/obra/superpowers"
+license = "MIT"
+
+[external_skill.using-git-worktrees]
+upstream = "https://github.com/obra/superpowers"
+license = "MIT"
+
+[external_skill.writing-plans]
+upstream = "https://github.com/obra/superpowers"
+license = "MIT"
+
+[external_skill.ui-ux-pro-max]
+upstream = "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill"
+license = "MIT"
+
+# Upstream ships no LICENSE file; the Public Domain dedication is stated in its
+# README. The bundled reference text is Strunk (1918) via Project Gutenberg.
+[external_skill.writing-clearly-and-concisely]
+upstream = "https://github.com/obra/the-elements-of-style"
+license = "Public Domain"
+
+# First-party: generated from this repository's own slash commands, not vendored.
+# They sit under skills-external/ for mechanical reasons in the sync engine.
+[external_skill.source-command-retro]
+upstream = "first-party"
+license = "Apache-2.0"
+
+[external_skill.source-command-verify]
+upstream = "first-party"
+license = "Apache-2.0"

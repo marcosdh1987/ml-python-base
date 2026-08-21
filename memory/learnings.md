@@ -3,6 +3,25 @@
 > Non-obvious facts discovered while working: gotchas, why-it-is-this-way, dead ends
 > to avoid. Append new entries at the top. One fact per entry.
 
+## Redistribution rights need a machine gate, not a checklist — 2026-08-20
+
+Instantiating this template for an organization surfaced that it had shipped for
+months with no licence and twelve vendored third-party skills with no recorded
+origin. The open-source-readiness checklist already listed "verify the license of
+each vendored skill" — nobody ran it, because nothing failed when it was skipped.
+Public availability of a repo is not a licence to redistribute its content.
+
+**Why it matters:** anything enforced only by a checklist item silently lapses;
+the repo's own "system-enforced over model-only" principle applies to legal
+hygiene too.
+**How to apply:** declare `upstream` + `license` per skill in the
+`[external_skill]` table of `adapters/registry.toml`; `make sync-skills` emits
+them into `skills-lock.json`, undeclared origins render as `UNKNOWN`, and
+`tests/skills_sync/test_config.py` fails `make check` on any UNKNOWN. Attribution
+lives in `NOTICE` (required by Apache-2.0 §4). Same lesson pattern as the
+docs-coverage gate from 2026-08-14. Source: back-port from
+`xmartlabs/sdlc-ml-python-template` v1.0.0.
+
 ## Adapter debugging protocol must be repo-agnostic (issue #47) — 2026-08-18
 
 The #43 protocol was over-fit to this template: it defined the repo root as
