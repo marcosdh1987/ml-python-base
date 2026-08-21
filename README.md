@@ -1,6 +1,26 @@
 # Python ML Base Project
 
-A modern Python base project template with best practices for machine learning and data science development.
+A Python project template for machine learning and data science work, built around an
+**AI harness**: the rules, skills, and quality gates that make coding agents behave
+consistently are committed to the repository itself.
+
+## What this repository actually ships
+
+It is a **template**, not an application — there is no service to start and no model to
+serve. Cloning it gives you:
+
+1. **A governed AI harness.** Architecture rules, coding standards, operational skills,
+   and agent definitions live in `.github/` and are projected into the native format of
+   Claude Code, Codex, OpenCode, Antigravity, and GitHub Copilot — so every assistant
+   reads the same rules on first load, with no manual prompting.
+2. **A skills-projection engine** (`src/ml_python_base/skills_sync`, run via
+   `make sync-skills`) that generates those per-tool layouts from one governed source and
+   fails CI when they drift.
+3. **A Python baseline** — `uv` for dependencies, ruff, mypy, bandit, pytest, pre-commit,
+   and a dev container — wired into a single read-only gate: `make check`.
+
+Run `make init NAME=my_project` to turn a fresh clone into your own project, then
+`make install` and `make check`.
 
 ## 🚀 Features
 
@@ -11,7 +31,6 @@ A modern Python base project template with best practices for machine learning a
 - **Pre-commit hooks** to ensure quality before committing
 - **Makefile** commands for common development tasks
 - **Testing** setup with pytest and coverage
-- **Docker** support for containerization
 - **Dev Containers** ready for consistent development environments
 - **Claude Toolbelt** guidance for MCP servers, CLIs, and local service checks
 
@@ -81,7 +100,9 @@ After running `make install`, a kernel named "Python (uv)" will be automatically
 ```bash
 # Start Jupyter
 uv run jupyter lab
-```� Dev Containers (Recommended)
+```
+
+## 🐳 Dev Containers (Recommended)
 
 This project is configured to run inside a **Dev Container**. This guarantees that you are working in the exact same environment as production (Linux), regardless of your local OS (macOS, Windows).
 
@@ -97,8 +118,6 @@ This project is configured to run inside a **Dev Container**. This guarantees th
 - **Zero Setup**: The container installs Python, `uv`, and all dependencies automatically.
 - **Production Parity**: Develop on Linux, deploy on Linux.
 - **Jupyter Integration**: Notebooks run seamlessly inside the container, using the container's kernel.
-
-## �
 
 ## 📦 Managing Dependencies
 
@@ -511,19 +530,6 @@ make purge-external-skills
 
 This removes all synced external skills and `skills-lock.json`, while keeping internal template skills untouched.
 
-## 🐳 Docker Support
-
-```bash
-# Build Docker image
-make build-api
-
-# Run in Docker
-make run-api-docker
-
-# Stop Docker container
-make stop-docker
-```
-
 ## 📝 Configuration
 
 - **Dependencies**: `pyproject.toml` - `[project.dependencies]`
@@ -539,7 +545,8 @@ encoded directly in the repo so every AI assistant reads them on first load — 
 prompting required.
 
 The full methodology lives in a separate public guide (`harness-engineering-guide`).
-This repo ships only the operational layer that derived projects inherit.
+This repo ships the operational layer that derived projects inherit; the documents
+below are the entry points.
 
 Key documents:
 
@@ -562,4 +569,8 @@ Key documents:
 
 ## 📄 License
 
-This is a template project - customize as needed for your use case.
+Licensed under the [Apache License 2.0](LICENSE).
+
+This repository vendors third-party agent skills under `.github/skills-external/`.
+They keep their own licences; attribution is in [NOTICE](NOTICE) and machine-readable
+provenance in `skills-lock.json`.

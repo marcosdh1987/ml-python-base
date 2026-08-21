@@ -1,0 +1,25 @@
+# Review routing. The last matching pattern wins, so the specific rules below
+# override the catch-all. Update the owners when the maintainer set changes.
+
+# Default owner for everything not matched below.
+*                           @marcosdh1987
+
+# Governance is the contract every downstream project inherits — a change here
+# propagates to every repo generated from this template.
+/.github/skills/            @marcosdh1987
+/.github/agents/            @marcosdh1987
+/.github/architecture.md    @marcosdh1987
+/.github/standards.md       @marcosdh1987
+/.github/domain-boundaries.md @marcosdh1987
+/adapters/                  @marcosdh1987
+
+# The projection engine and the release contract can change repository structure.
+/src/ml_python_base/skills_sync/ @marcosdh1987
+/scripts/                   @marcosdh1987
+/Makefile                   @marcosdh1987
+
+# Security-relevant surfaces.
+/.github/workflows/         @marcosdh1987
+/LICENSE                    @marcosdh1987
+/NOTICE                     @marcosdh1987
+/SECURITY.md                @marcosdh1987

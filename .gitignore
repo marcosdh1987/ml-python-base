@@ -1,3 +1,4 @@
+# Virtual environments
 .venv/
 venv/
 env/
@@ -7,79 +8,45 @@ env/
 # gateway/config.example.yaml.
 gateway/config.yaml
 
-# Python cache y compilados
+# Python bytecode and build caches
 *.pyc
-__pycache__/
-dash/__pycache__/
-webapp01/__pycache__/
 *.pyo
 *.pyd
+__pycache__/
 .Python
 *.so
 
-# Entornos virtuales
-instance/
-
-# Testing y coverage
+# Testing and coverage
 .pytest_cache/
 .coverage
 htmlcov/
 .tox/
 .nox/
 
-# Build y distribución
+# Build and distribution
 dist/
 build/
 *.egg-info/
 .eggs/
 
-# Linting y code quality
+# Linting, typing, and security reports
 .mypy_cache/
 .ruff_cache/
 .pylint.d/
+.pylintrc
 security-report.json
 bandit-report.json
 semgrep-report.json
 
-# IDEs y editores
+# IDEs and editors
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Promptflow temps
-.promptflow/
-
-# Milvus temps
-milvus/volumes/*
-volumes/*
-
-# App logs
-flow/logger/data/*
-notebooks/memory/data/*
-notebooks/chat_history.db
-chat_history.db
-notebooks/azure-sdk.ipynb
-notebooks/data/users.db
-
-# LangGraph
-.langgraph_api/
-
-# Logger data
-src/logger/data/*
-
-# CI/CD temps
-.venv-ci/
-test-reports/
-
-# Evaluation results
-notebooks/data/evaluation/results/*
-notebooks/data/experiments/*
-
-# Sistema
-.DS_Store
-
-# Jupyter Notebook checkpoints
+# Jupyter
 .ipynb_checkpoints
-.pylintrc
+
+# OS
+.DS_Store

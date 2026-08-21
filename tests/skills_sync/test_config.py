@@ -6,7 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from ml_python_base.skills_sync.config import load_registry
+from ml_python_base.skills_sync.config import (
+    load_external_skill_provenance,
+    load_registry,
+)
 from ml_python_base.skills_sync.errors import RegistryError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -72,3 +75,19 @@ platform_paths = ["shared"]
 
     with pytest.raises(RegistryError, match="overlap"):
         load_registry(registry_path)
+
+
+def test_load_external_skill_provenance_reads_registry() -> None:
+    """Every vendored skill must declare an upstream and a licence."""
+    provenance = load_external_skill_provenance(REPO_ROOT / "adapters/registry.toml")
+    assert provenance, "registry declares no [external_skill] entries"
+    unknown = sorted(
+        name
+        for name, entry in provenance.items()
+        if "UNKNOWN" in (entry["upstream"], entry["license"])
+    )
+    assert not unknown, f"skills with undeclared provenance: {unknown}"
+
+
+def test_load_external_skill_provenance_missing_registry(tmp_path: Path) -> None:
+    assert load_external_skill_provenance(tmp_path / "absent.toml") == {}

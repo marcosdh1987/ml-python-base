@@ -11,6 +11,10 @@ import os
 import tempfile
 from pathlib import Path
 
+from ml_python_base.skills_sync.config import (
+    DEFAULT_REGISTRY_PATH,
+    load_external_skill_provenance,
+)
 from ml_python_base.skills_sync.discovery import EXTERNAL_DIR, SKILL_FILE
 from ml_python_base.skills_sync.hashing import file_sha256
 
@@ -51,9 +55,17 @@ def render_lock(
     now_iso: str,
     external_dir: Path = EXTERNAL_DIR,
     lock_path: Path | None = None,
+    provenance: dict[str, dict[str, str]] | None = None,
 ) -> str:
-    """Build the lock content, preserving timestamps when nothing changed."""
+    """Build the lock content, preserving timestamps when nothing changed.
+
+    ``provenance`` carries the redistribution record (upstream URL and licence)
+    declared per skill in ``adapters/registry.toml``. It defaults to reading that
+    registry so the writer and the drift check cannot disagree.
+    """
     lock_path = lock_path or (root / LOCK_FILE)
+    if provenance is None:
+        provenance = load_external_skill_provenance(root / DEFAULT_REGISTRY_PATH)
     entries = _external_entries(root, external_dir)
     existing = _read_existing(lock_path).get("skills", {})
     existing_meta = _read_existing(lock_path)
@@ -67,10 +79,15 @@ def render_lock(
     blocks: list[str] = []
     for name, rel_dir, rel_file, digest in entries:
         synced_at = _synced_at(name, rel_dir, rel_file, digest, existing, now_iso)
+        record = provenance.get(name, {})
+        upstream = record.get("upstream", "UNKNOWN")
+        licence = record.get("license", "UNKNOWN")
         blocks.append(
             f'    "{name}": {{\n'
             '      "source": "synced-local",\n'
             '      "sourceType": "directory",\n'
+            f'      "upstream": "{upstream}",\n'
+            f'      "license": "{licence}",\n'
             f'      "path": "{rel_dir}",\n'
             f'      "skillFile": "{rel_file}",\n'
             f'      "computedHash": "{digest}",\n'
@@ -85,9 +102,10 @@ def write_lock(
     now_iso: str,
     external_dir: Path = EXTERNAL_DIR,
     lock_path: Path | None = None,
+    provenance: dict[str, dict[str, str]] | None = None,
 ) -> None:
     lock_path = lock_path or (root / LOCK_FILE)
-    content = render_lock(root, now_iso, external_dir, lock_path)
+    content = render_lock(root, now_iso, external_dir, lock_path, provenance)
     _atomic_write(lock_path, content)
 
 

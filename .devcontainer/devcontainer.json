@@ -27,9 +27,9 @@
       }
     }
   },
-  // Usamos tu Makefile para instalar todo automáticamente al crear el contenedor
+  // The Makefile installs everything automatically on container creation
   "postCreateCommand": "make install",
 
-  // Usuario remoto (vscode es el default en las imágenes de Microsoft)
+  // Remote user (vscode is the default in Microsoft's devcontainer images)
   "remoteUser": "vscode"
 }
