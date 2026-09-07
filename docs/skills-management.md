@@ -40,7 +40,40 @@ make setup-claude-skills
 make setup-antigravity-skills
 ```
 
-The generated Claude files are symlinks back to `.github/skills/*.md` and `.github/skills-external/<skill-name>/`. The generated Antigravity files are copied into `.agents/skills/` together with a hidden manifest used to distinguish governed output from newly installed ad-hoc skills. Governed folders remain the source of truth.
+The generated Claude files are symlinks back into `.github/skills/` and `.github/skills-external/<skill-name>/`. The generated Antigravity files are copied into `.agents/skills/` together with a hidden manifest used to distinguish governed output from newly installed ad-hoc skills. Governed folders remain the source of truth.
+
+## Internal skill shapes
+
+A skill is either only prose, or prose plus the files it runs. Both shapes live in
+`.github/skills/`, and the engine discovers them uniformly:
+
+| The skill is… | On disk | `Skill.is_bundle` |
+|---|---|---|
+| A single `.md`, no helper files | `.github/skills/<name>.md` | `False` |
+| Prose plus scripts, templates or references | `.github/skills/<name>/SKILL.md` with the helpers beside it | `True` |
+
+The skill **name** comes from the file stem or the folder name, never from the
+frontmatter. A folder without `SKILL.md` is not a skill and is skipped silently, so
+supporting directories cannot be mistaken for one. Internal and external skills are
+ordered independently of shape — internal skills sort by name, then external ones.
+
+Shape and provenance are independent axes. External skills
+(`.github/skills-external/`) are always bundles because that is how vendors ship
+them; internal skills choose. Code that cares about the on-disk layout must branch on
+`Skill.is_bundle`, never on `Skill.kind` — an internal bundle projects exactly like an
+external one.
+
+Projection covers both shapes:
+
+- **Symlink tools** (Claude Code, OpenCode, Codex) get `SKILL.md` linked for a flat
+  skill, and one link per top-level entry for a bundle.
+- **The copy tool** (Antigravity) copies the tree with `shutil.copy2`, preserving the
+  executable bit, so a bundled `.sh` stays runnable in the projected view. Folder
+  digests hash content only, so file modes never move a manifest hash.
+
+When a skill invokes a bundled script, point the agent at the **governed** path
+(`.github/skills/<name>/<script>`), never at a native copy — native views are torn
+down and rebuilt on every `make sync-skills`.
 
 Default internal skills bundled by template:
 

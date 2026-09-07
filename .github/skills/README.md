@@ -2,15 +2,37 @@
 
 Operational skills must receive explicit input and return structured output.
 
-Each internal skill file must include YAML frontmatter with:
+Every skill must include YAML frontmatter with:
 
-- `name`: file name without `.md`
+- `name`: the skill name, matching the file or folder name
 - `description`: semantic trigger description for native skill discovery
+
+## Skill shapes
+
+A skill is either only prose, or prose plus the files it runs. Both shapes live
+in `.github/skills/`; the shape decides the layout.
+
+| The skill is… | It goes in |
+|---|---|
+| A single `.md`, no helper files | `.github/skills/<name>.md` |
+| Prose plus scripts, templates or references | `.github/skills/<name>/SKILL.md` with the helpers beside it |
+
+A folder needs `SKILL.md` as its entry point; without it the folder is not a
+skill and is skipped. The skill name comes from the file stem or the folder
+name, not from the frontmatter.
+
+Both shapes project correctly into every tool: symlink tools get one link per
+bundled file, and the copy tool (Antigravity) preserves executable bits, so a
+bundled `.sh` stays runnable in the projected view.
+
+Point agents at the **governed** path of a bundled script
+(`.github/skills/<name>/<script>`), never at a native copy. Native views are
+rebuilt on every sync.
 
 ## Skill Sources
 
-- Internal curated skills: `.github/skills/`
-- External synced skills: `.github/skills-external/`
+- Internal curated skills: `.github/skills/` (either shape)
+- External synced skills: `.github/skills-external/` (always folders)
 - Claude Code native generated links: `.claude/skills/`
 - Antigravity native generated copies: `.agents/skills/`
 - OpenCode native generated links: `.opencode/skills/`

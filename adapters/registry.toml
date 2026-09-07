@@ -154,7 +154,10 @@ upstream = "https://github.com/obra/the-elements-of-style"
 license = "Public Domain"
 
 # First-party: generated from this repository's own slash commands, not vendored.
-# They sit under skills-external/ for mechanical reasons in the sync engine.
+# They sit under skills-external/ for historical reasons: internal skills were
+# once restricted to flat files, so a skill with helper files had nowhere else to
+# go. That restriction is gone (internal skills may be folders), so these could
+# move to .github/skills/ whenever the churn is worth it.
 [external_skill.source-command-retro]
 upstream = "first-party"
 license = "Apache-2.0"

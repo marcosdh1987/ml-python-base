@@ -52,6 +52,20 @@ Three gates catch most review round-trips:
 - **Record durable decisions** as an ADR in `docs/adr/` (`/adr` scaffolds one) and
   non-obvious learnings in `memory/`.
 
+## Adding an internal skill
+
+An internal skill takes either shape, both under `.github/skills/`:
+
+- **prose only** — a single `<name>.md`;
+- **prose plus files it runs** — a `<name>/` folder with `SKILL.md` as its entry
+  point and the scripts, templates or references beside it.
+
+Give it YAML frontmatter with `name` (matching the file or folder name) and a
+`description` written as a trigger, then run `make sync-skills` and commit the
+regenerated views. When the skill invokes a bundled script, tell the agent to
+call the governed path (`.github/skills/<name>/<script>`), never a native copy.
+Details in [.github/skills/README.md](.github/skills/README.md).
+
 ## Adding an external skill
 
 External skills are third-party content redistributed by this repository. Any new one
