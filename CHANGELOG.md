@@ -5,6 +5,12 @@ All notable changes to this template are documented here. The format is based on
 [Semantic Versioning](https://semver.org/). Downstream projects adopt a release with
 `make template-sync REF=vX.Y.Z` (see `docs/template-sync.md`).
 
+## [0.9.0]
+
+### Changed
+- feat: support internal skills as directories with executable helpers
+- docs: document the two internal skill shapes
+
 ## [Unreleased]
 
 ### Added
