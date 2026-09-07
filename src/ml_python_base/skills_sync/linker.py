@@ -16,7 +16,6 @@ from pathlib import Path
 from ml_python_base.skills_sync.errors import UnsafeTargetError
 from ml_python_base.skills_sync.hashing import folder_hash
 from ml_python_base.skills_sync.models import (
-    KIND_INTERNAL,
     LINK_COPY,
     LINK_SYMLINK,
     Skill,
@@ -77,13 +76,13 @@ def _link_symlink(root: Path, dest_root: Path, tool: ToolSpec, skill: Skill) -> 
     _ensure_owned_dir(skill_dest)
     skill_dest.mkdir(parents=True, exist_ok=True)
 
-    if skill.kind == KIND_INTERNAL:
-        # .github/skills/<name>.md -> <native>/<name>/SKILL.md
+    if not skill.is_bundle:
+        # <name>.md -> <native>/<name>/SKILL.md
         target = f"{prefix}{_repo_relative(root, skill.source_path)}"
         _symlink(skill_dest / "SKILL.md", target)
         return
 
-    # External: link every top-level item of the source directory.
+    # Bundle: link every top-level item of the source directory.
     for item in sorted(skill.source_path.iterdir(), key=lambda p: p.name):
         target = f"{prefix}{_repo_relative(root, item)}"
         _symlink(skill_dest / item.name, target)
@@ -96,10 +95,10 @@ def _link_copy(dest_root: Path, skill: Skill) -> str:
         shutil.rmtree(skill_dest)
     skill_dest.mkdir(parents=True)
 
-    if skill.kind == KIND_INTERNAL:
-        shutil.copyfile(skill.source_path, skill_dest / "SKILL.md")
-    else:
+    if skill.is_bundle:
         _copy_tree(skill.source_path, skill_dest)
+    else:
+        shutil.copyfile(skill.source_path, skill_dest / "SKILL.md")
     return folder_hash(skill_dest)
 
 
@@ -110,7 +109,10 @@ def _copy_tree(source_dir: Path, dest_dir: Path) -> None:
         if entry.is_dir():
             shutil.copytree(entry, target)
         else:
-            shutil.copyfile(entry, target)
+            # copy2, not copyfile: a bundled script must stay executable in the
+            # projected view, and folder_hash only digests content, so the
+            # preserved mode cannot change a manifest.
+            shutil.copy2(entry, target)
 
 
 def _ensure_owned_dir(path: Path) -> None:

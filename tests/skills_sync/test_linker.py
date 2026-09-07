@@ -78,3 +78,52 @@ def test_link_removes_stale_skill_dirs(tmp_path: Path) -> None:
 
     link_tool(tmp_path, tool, discover_skills(tmp_path))
     assert not stale.exists()
+
+
+def _seed_bundle(root: Path) -> None:
+    """An internal skill shaped as a directory with an executable helper."""
+    bundle = root / ".github/skills/bundled"
+    bundle.mkdir(parents=True)
+    (bundle / "SKILL.md").write_text(
+        "---\nname: bundled\ndescription: runs a script\n---\n", encoding="utf-8"
+    )
+    script = bundle / "run.sh"
+    script.write_text("#!/bin/sh\necho hi\n", encoding="utf-8")
+    script.chmod(0o755)
+
+
+def test_symlink_strategy_links_every_file_of_an_internal_bundle(
+    tmp_path: Path,
+) -> None:
+    _seed_bundle(tmp_path)
+    tool = ToolSpec(
+        id="claude",
+        display_name="Claude Code",
+        link_strategy="symlink",
+        native_skills_dir=".claude/skills",
+    )
+    link_tool(tmp_path, tool, discover_skills(tmp_path))
+
+    dest = tmp_path / ".claude/skills/bundled"
+    assert os.readlink(dest / "SKILL.md") == "../../../.github/skills/bundled/SKILL.md"
+    assert os.readlink(dest / "run.sh") == "../../../.github/skills/bundled/run.sh"
+
+
+def test_copy_strategy_preserves_executable_bit_of_bundled_scripts(
+    tmp_path: Path,
+) -> None:
+    """A projected helper script must stay runnable, or the skill is broken."""
+    _seed_bundle(tmp_path)
+    tool = ToolSpec(
+        id="antigravity",
+        display_name="Antigravity",
+        link_strategy="copy",
+        native_skills_dir=".agents/skills",
+        needs_manifest=True,
+        manifest_path=".agents/skills/.generated-manifest.tsv",
+    )
+    link_tool(tmp_path, tool, discover_skills(tmp_path))
+
+    copied = tmp_path / ".agents/skills/bundled/run.sh"
+    assert copied.is_file() and not copied.is_symlink()
+    assert os.access(copied, os.X_OK)

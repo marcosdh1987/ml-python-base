@@ -34,19 +34,30 @@ AGENT_FORMAT_CODEX = "codex"  # TOML, lives at .codex/agents/<name>.toml
 class Skill:
     """A governed skill discovered from the source of truth.
 
-    Internal skills are flat files (``.github/skills/<name>.md``); external
-    skills are directories (``.github/skills-external/<name>/`` with a
-    ``SKILL.md`` plus optional supporting files).
+    Shape and provenance are independent. A skill takes one of two shapes:
+
+    * **flat** — a single ``<name>.md`` file, for a skill that is only prose;
+    * **bundle** — a directory whose entry point is ``SKILL.md``, shipping the
+      scripts, templates or references the skill runs beside it.
+
+    Internal skills (``.github/skills/``) may use either shape; external skills
+    (``.github/skills-external/``) are always bundles. Consumers that care about
+    the on-disk layout must branch on :attr:`is_bundle`, never on :attr:`kind`.
     """
 
     name: str
     kind: str  # KIND_INTERNAL | KIND_EXTERNAL
-    source_path: Path  # file (internal) or directory (external)
+    source_path: Path  # flat `.md` file, or a directory containing SKILL.md
     description: str = ""
 
     @property
     def is_internal(self) -> bool:
         return self.kind == KIND_INTERNAL
+
+    @property
+    def is_bundle(self) -> bool:
+        """True when the skill ships helper files next to its ``SKILL.md``."""
+        return self.source_path.is_dir()
 
 
 @dataclass(frozen=True)

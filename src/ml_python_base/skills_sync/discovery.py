@@ -30,20 +30,37 @@ def discover_skills(
 
 
 def _discover_internal(internal_path: Path) -> list[Skill]:
+    """Enumerate internal skills in either supported shape, sorted by name.
+
+    A flat ``<name>.md`` is a prose-only skill. A ``<name>/`` directory is a
+    bundle: ``SKILL.md`` is its entry point and the helper files it runs sit
+    beside it. A directory without ``SKILL.md`` is not a skill and is skipped.
+    """
     if not internal_path.is_dir():
         return []
     skills: list[Skill] = []
-    for path in sorted(internal_path.glob("*.md"), key=lambda p: p.name):
-        if path.stem in _EXCLUDED_STEMS:
+    for path in internal_path.iterdir():
+        if path.name.startswith("."):
+            continue
+        if path.is_dir():
+            skill_file = path / SKILL_FILE
+            if not skill_file.is_file():
+                continue
+            name = path.name
+        elif path.suffix == ".md" and path.stem not in _EXCLUDED_STEMS:
+            skill_file = path
+            name = path.stem
+        else:
             continue
         skills.append(
             Skill(
-                name=path.stem,
+                name=name,
                 kind=KIND_INTERNAL,
                 source_path=path,
-                description=_read_description(path),
+                description=_read_description(skill_file),
             )
         )
+    skills.sort(key=lambda skill: skill.name)
     return skills
 
 
