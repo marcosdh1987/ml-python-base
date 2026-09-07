@@ -15,6 +15,12 @@ All notable changes to this template are documented here. The format is based on
   skill that ships a script no longer has to be smuggled into
   `.github/skills-external/`. `Skill.is_bundle` exposes the shape, and the linker
   branches on it instead of on `kind`.
+- **Documented both skill shapes** (`docs/skills-management.md`,
+  `.github/skills/README.md`, `CONTRIBUTING.md`): which layout to use, that the
+  skill name comes from the file stem or folder name rather than the frontmatter,
+  and that agents must call the governed path of a bundled script
+  (`.github/skills/<name>/<script>`) — never a native copy, which is rebuilt on
+  every sync.
 
 ### Fixed
 - **Bundled scripts stay executable in copied views.** The copy strategy used by
