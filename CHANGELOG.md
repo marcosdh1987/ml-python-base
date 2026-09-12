@@ -7,16 +7,11 @@ All notable changes to this template are documented here. The format is based on
 
 ## [1.0.0]
 
-### Changed
-- Add comprehensive tests for skills synchronization and governance
-
-## [0.9.0]
-
-### Changed
-- feat: support internal skills as directories with executable helpers
-- docs: document the two internal skill shapes
-
-## [Unreleased]
+First MAJOR release: the skills catalog is reorganized, two duplicate skills are
+removed, and `[template_sync].protocol` moves to **2**. Downstream repositories
+must adopt the platform upgrade (the `skills_sync` engine plus the registry's
+`[catalog]` blocks) before syncing protocol-2 governance — migration steps in
+[`docs/skills-catalog-v3-audit.md`](docs/skills-catalog-v3-audit.md) §6.
 
 ### Added
 - **Skills catalog v3** (`docs/skills-guide.md`, `docs/generated/skills-catalog.md`,
@@ -66,6 +61,9 @@ All notable changes to this template are documented here. The format is based on
   and the overlay banner now names the governed path instead of raising when the
   source lives outside the projection root.
 
+- **Test suite for the catalog, the policy and the routing** (`tests/skills_sync/test_catalog.py`, `test_overlay.py`, `test_policies.py`,
+  `test_aliases.py`, `test_linker_extensions.py`, `test_frontmatter.py`, `tests/routing/`): 260 tests, up from 134.
+
 ### Changed
 - **`brainstorming` no longer claims every creative task.** Its projected
   description is the governed one ("design-impacting work: new subsystem,
@@ -97,6 +95,14 @@ All notable changes to this template are documented here. The format is based on
   earlier-retired `execute_engineering_task`, `create_use_case` and
   `create_repository_interface`, resolve through `[alias.*]` and are listed as
   legacy names in every adapter.
+
+## [0.9.0]
+
+### Changed
+- feat: support internal skills as directories with executable helpers
+- docs: document the two internal skill shapes
+
+### Added
 - **Internal skills may be folders.** An internal skill is no longer restricted
   to a flat `.github/skills/<name>.md`: it may be a `<name>/` directory with
   `SKILL.md` as its entry point and the scripts, templates or references it runs
