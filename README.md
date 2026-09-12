@@ -158,7 +158,7 @@ make generate-requirements
 
 ## 🎯 Code Quality
 
-The project provides three main levels of code quality checks:
+The project provides four levels of code quality checks (plus the read-only gate below):
 
 1. **`make fix` (Recommended)**: The "do it all" command. It auto-formats code, sorts imports, removes unused imports, fixes linting issues, and cleans Jupyter notebooks. Run this frequently!
 2. **`make fix-force`**: Same as `fix`, but applies "unsafe" fixes. Use with caution (e.g., it might remove imports used only in `try/except` blocks).
@@ -175,9 +175,16 @@ make fix-force
 # 3. Verify quality and security (Read-only check)
 make lint
 
-# 4. Run full CI pipeline (Fix + Lint + Test)
+# 4. Read-only gate: format check + lint + bandit + mypy + tests
+make check
+
+# 5. Full CI pipeline — read-only, never mutates the tree
+#    (= make check + make check-sync + make check-docs-coverage)
 make ci
 ```
+
+CI **verifies and never fixes**: run `make fix` / `make format` locally before
+pushing. A green `make ci` locally means a green CI.
 
 ## 📁 Project Structure
 
@@ -189,7 +196,13 @@ make ci
 ├── memory/                 # Persistent project memory (context, learnings, patterns)
 ├── docs/                   # Documentation, including:
 │   └── adr/                #   Architecture Decision Records (the durable "why")
-├── .claude/                # Claude Code harness: commands/, hooks/, settings, skills
+├── .github/                # Governed source of truth for the harness:
+│   ├── skills/             #   internal skills (+ skills-external/ for vendored)
+│   └── agents/             #   tool-agnostic agent definitions
+├── adapters/               # registry.toml (tools + skills catalog) + Jinja templates
+├── .claude/                # Claude Code: commands/, hooks/, settings, generated skills
+├── .codex/ .opencode/      # Codex and OpenCode: generated skills + agents
+├── .agents/                # Antigravity: generated skills + rules/GEMINI.md
 ├── .mcp.json               # Optional MCP servers (library docs, git) — opt-in
 ├── .mcp.example.json       # Example optional MCP expansions without secrets
 ├── Makefile               # Development commands
@@ -212,32 +225,52 @@ This template uses a consistent four-level strategy so it can be reused with Cla
 
 ### Level 2 — Operational Skills
 
-Internal governed skills are stored in `.github/skills/` as the source of truth:
+Internal governed skills live in `.github/skills/` (source of truth); vendored ones
+in `.github/skills-external/`. The catalog is layered so a developer only needs the
+**nine entrypoints**, by intent:
 
-- `create_use_case`
-- `create_repository_interface`
-- `create_mle_agent_package`
-- `generate_e2e_tests`
-- `generate_implementation_docs`
-- `refactor_to_clean_architecture`
-- `validate_module_structure`
-- `generate_migration_plan`
-- `execute_engineering_task`
-- `plan_and_execute_feature`
+| I want to… | Use |
+|---|---|
+| start a project from this template | `bootstrap_project` |
+| explore a scoped idea or compare options | `brainstorm_quick` |
+| design a new subsystem or a design-impacting change | `brainstorming` |
+| implement a feature or an approved plan | `plan_and_execute_feature` |
+| fix a failing test, traceback or wrong behavior | `systematic_debugging` |
+| plan a code, data or architecture migration | `generate_migration_plan` |
+| check current facts (versions, APIs, releases) | `research_current_info` |
+| verify the work before calling it done | `verify_changes` |
+| review the finished diff | `requesting-code-review` |
 
-Claude Code reads a generated native layout from `.claude/skills/`, including internal and synced external skills. Refresh it with:
+The entrypoints compose the internal primitives (`create_domain_contract`,
+`test-driven-development`, `generate_e2e_tests`, `retrospective`, …) and optional
+specialists (`create_mle_agent_package`, `ui-ux-pro-max`). The full, generated
+inventory with families, visibility and profiles is
+[docs/generated/skills-catalog.md](docs/generated/skills-catalog.md); the guide is
+[docs/skills-guide.md](docs/skills-guide.md).
+
+Four tools read a **generated** native layout of the same governed skills —
+`.claude/skills/`, `.codex/skills/`, `.opencode/skills/` (symlinks) and
+`.agents/skills/` (copies + manifest). Copilot reads the governed paths directly.
+One command refreshes everything, including the agents, the managed block inside
+every adapter file, and the generated catalog:
 
 ```bash
-make setup-claude-skills
+make sync-skills     # then `make check-sync` verifies nothing is stale (CI gate)
 ```
 
-Antigravity reads a generated native workspace layout from `.agents/skills/` and `.agents/rules/`. Refresh the skills mirror with:
+Per-tool targets exist for narrower refreshes (`make setup-claude-skills`,
+`make setup-opencode-skills`, `make setup-antigravity-skills`,
+`make render-adapters`, `make sync-agents`, `make render-catalog`).
 
-```bash
-make setup-antigravity-skills
-```
+Agents may **recommend** git actions and prepare commands, diffs and PR text, but
+never run `git commit`, `git push`, `merge`, `rebase` or a branch deletion on
+their own. That `git-actions` policy is declared once in
+`adapters/registry.toml`, rendered into every adapter, projected into each
+vendored skill that instructs otherwise, and enforced as a real permission where
+the platform has one (Claude Code, OpenCode; opt-in for Copilot). Matrix:
+[docs/skills-guide.md](docs/skills-guide.md).
 
-External synced/vendor skills live in `.github/skills-external/`.
+Engine reference: [docs/skills-management.md](docs/skills-management.md).
 
 ### Level 3 — Automation
 
@@ -257,12 +290,17 @@ External synced/vendor skills live in `.github/skills-external/`.
 
 Adapters:
 
-- Claude Code entrypoint: `CLAUDE.md`
-- Claude Code native skills: `.claude/skills/` generated from `.github/skills/` and `.github/skills-external/`
-- Claude Code slash commands: `.claude/commands/`, including `/toolbelt` for MCP/CLI/service discovery
-- Copilot entrypoint: `.github/copilot-instructions.md`
-- Antigravity workspace rules: `.agents/rules/`
-- Antigravity native skills: `.agents/skills/` generated from `.github/skills/` and `.github/skills-external/`
+| Tool | Entrypoint (instructions) | Native skills | Native agents |
+|---|---|---|---|
+| Claude Code | `CLAUDE.md` | `.claude/skills/` | `.claude/agents/` |
+| Codex | `AGENTS.md` | `.codex/skills/` | `.codex/agents/` |
+| OpenCode | `OPENCODE.md` | `.opencode/skills/` | `.opencode/agents/` |
+| Antigravity | `.agents/rules/GEMINI.md` | `.agents/skills/` | — |
+| GitHub Copilot | `.github/copilot-instructions.md` | reads `.github/skills*` directly | — |
+
+All generated from `.github/skills/`, `.github/skills-external/` and
+`.github/agents/` by `make sync-skills`. Claude Code also ships slash commands in
+`.claude/commands/`, including `/toolbelt` for MCP/CLI/service discovery.
 
 Documentation template:
 
@@ -318,12 +356,23 @@ assessments of AI-assisted coding skill (and what a template can/can't influence
 | `make lint` | Run code quality checks |
 | `make fix` | Auto-fix linting issues |
 | `make test` | Run tests with coverage |
-| `make ci` | Run full CI pipeline |
+| `make check` | Read-only quality gate: format check, ruff, bandit, mypy, tests |
+| `make check-sync` | Fail if any generated skill/agent/catalog artifact is stale |
+| `make check-docs-coverage` | Fail if `src/`/`tests/` changed without a `docs/` update |
+| `make typecheck` | Static type checking only (mypy) |
+| `make ci` | Full read-only pipeline: `check` + `check-sync` + `check-docs-coverage` |
 | `make toolbelt-doctor` | Check expected CLIs and configured local service endpoints |
 | `make setup-claude-skills` | Generate `.claude/skills` native symlinks from governed skills |
 | `make setup-antigravity-skills` | Generate `.agents/skills` native Antigravity mirror from governed skills |
-| `make sync-skills` | Sync external skills, refresh `skills-lock.json`, and refresh Claude and Antigravity native skill layouts |
-| `make purge-external-skills` | Remove all external skills and refresh Claude and Antigravity native skill layouts |
+| `make setup-opencode-skills` | Generate `.opencode/skills` native symlinks from governed skills |
+| `make sync-agents` | Project `.github/agents/` into each tool's native agent format |
+| `make render-adapters` | Regenerate the managed skills block inside every adapter file |
+| `make sync-skills` | One-shot: ingest external skills, refresh `skills-lock.json`, all four native skill layouts, the agents, every adapter block, and the generated catalog |
+| `make render-catalog` | Regenerate `docs/generated/skills-catalog.md` from the governed skills + registry |
+| `make route PROMPT=…` | Route one request through the skills catalog (deterministic) |
+| `make routing-eval` | Deterministic skill-routing scenarios (`tests/routing/`) |
+| `make routing-eval-live` | Opt-in: same scenarios against a real model |
+| `make purge-external-skills` | Remove all external skills and reset every native layout to internal-only |
 | `make template-remote-setup` | Add or update the template upstream remote |
 | `make template-sync` | Selective governance sync from a semver tag (recommended) |
 | `make template-sync PREVIEW=1` | Preview the governance diff without applying |
@@ -371,7 +420,31 @@ number — the tooling derives it — and you never type it twice: every target 
 > commit that already carries it. `publish-release` creates the tag only after the
 > whole preflight is green — because a published tag is never moved.
 
-The whole flow is three commands:
+#### Step 0 — Land your work on `main` first
+
+**The release flow starts from `main`, with everything you want to release already
+merged.** It is not something you run from a feature branch, and the version is never
+bumped on one.
+
+| Where you are | What to do |
+|---|---|
+| On a feature branch, changes not merged yet | Commit, push, open a PR, merge it to `main`. Then come back here. |
+| On `main`, everything merged | `git switch main && git pull --ff-only`, then Step 1. |
+
+Two reasons this order is not optional:
+
+- **The version number is derived from committed history.** `make new-version`
+  classifies `git diff <latest tag>..HEAD` — commits, never your working tree. Run it
+  with the work uncommitted and it sees nothing: it proposes a PATCH bump and
+  scaffolds a `- TODO:` section instead of real notes.
+- **The release commit carries only the bump.** `make release-pr` refuses
+  (`unexpected_dirty`) when anything other than `pyproject.toml`, `CHANGELOG.md` and
+  `uv.lock` is dirty, precisely so feature work cannot be swept into a release commit.
+
+While you develop, `make version` keeps showing the last released number. That is
+correct, not a problem to fix.
+
+The whole flow is then three commands, all run on `main`:
 
 #### Step 1 — Scaffold the bump
 
@@ -388,8 +461,16 @@ refreshes `uv.lock`. It refuses to run if the version doesn't increase, the tag
 already exists, the CHANGELOG section is already there — or a previous release is
 reconciled but not yet tagged (publish that one first).
 
+Because the number comes from that classified diff, a release that **removes** a file
+or touches a **platform** path (the sync engine, `Makefile`, `adapters/registry.toml`)
+is classified MAJOR, not MINOR. Disagree with the derived number? Pass it explicitly:
+`make new-version VERSION=X.Y.Z`.
+
 Then **edit the CHANGELOG bullets by hand**: they start as raw commit subjects — turn
-them into human release notes.
+them into human release notes. If you kept notes under a `## [Unreleased]` heading
+while working, move them into the new `## [X.Y.Z]` section now: the scaffold is
+inserted above the first existing section and is built from commit subjects, so notes
+written anywhere else are not picked up.
 
 #### Step 2 — Open the release PR
 
@@ -480,6 +561,15 @@ make template-sync TOOL=opencode      # regenerate only one tool's adapter
 
 Review with `git diff`, then `make check-sync && make check`, then commit on a branch.
 
+> **Sync protocol.** `adapters/registry.toml` declares a `[template_sync].protocol`
+> (currently **2**). Governance files are safe to adopt on their own only while the
+> release's protocol matches yours: protocol 2 ships adapter templates that need the
+> v2 `skills_sync` engine and the registry's `[catalog]` blocks, both of which are
+> *platform* paths. Adopting a release with a higher protocol therefore means taking
+> the platform upgrade first, in its own reviewed PR — the preview refuses otherwise.
+> Migration steps for a repository that vendors the engine:
+> [docs/skills-catalog-v3-audit.md](docs/skills-catalog-v3-audit.md).
+
 For the **full release cycle** (when to tag, semver rules, bootstrap for older projects),
 see [docs/updating-existing-projects.md](docs/updating-existing-projects.md).
 For the full sync workflow (conflict resolution, full-repo merge/rebase option),
@@ -489,18 +579,11 @@ see [docs/template-sync.md](docs/template-sync.md).
 
 ### Default skills bundled in this template
 
-Internal curated skills live in `.github/skills/`:
-
-- `create_use_case`
-- `create_repository_interface`
-- `create_mle_agent_package`
-- `generate_e2e_tests`
-- `generate_implementation_docs`
-- `refactor_to_clean_architecture`
-- `validate_module_structure`
-- `generate_migration_plan`
-- `execute_engineering_task`
-- `plan_and_execute_feature`
+The bundled catalog (internal and vendored) is generated on every sync into
+[docs/generated/skills-catalog.md](docs/generated/skills-catalog.md) — do not
+maintain a copy of it here. Retired names (`execute_engineering_task`,
+`create_use_case`, `create_repository_interface`, `source-command-*`) resolve to
+their replacements through `[alias.*]` in `adapters/registry.toml`.
 
 ### Install an external skill from skills.sh
 
@@ -516,9 +599,22 @@ Then normalize it into this repository structure:
 make sync-skills
 ```
 
-This syncs complete skill directories to `.github/skills-external/`, refreshes `skills-lock.json`, removes installer temp folders, and refreshes `.claude/skills`. Run `make setup-claude-skills` separately when internal governed skills change and Claude Code needs its native links refreshed.
+This syncs complete skill directories to `.github/skills-external/`, refreshes
+`skills-lock.json` (hash, upstream and licence per skill), removes installer temp
+folders, and then rebuilds **every** projection: the four native skill layouts, the
+governed agents, the managed block in each adapter file, and
+`docs/generated/skills-catalog.md`. There is no separate step for internal skills —
+`make sync-skills` covers both sources; `make check-sync` then fails if anything is
+stale.
 
-After sync, the repo also regenerates `.agents/skills/` so Antigravity can discover the governed internal and synced external skills natively. The generated Antigravity mirror writes a hidden manifest to avoid re-importing generated skills on the next `make sync-skills` run.
+The Antigravity mirror is copied rather than symlinked and writes a hidden manifest,
+so generated skills are not re-imported as ad-hoc ones on the next run.
+
+A vendored skill also needs an `[external_skill.<name>]` entry (upstream + licence,
+or `make check` fails), a `[skill.<name>]` overlay for its catalog metadata, and —
+if its body instructs commits, pushes or merges — an entry in
+`[policy.git-actions].applies_to`. Details in
+[CONTRIBUTING.md](CONTRIBUTING.md) and [docs/skills-guide.md](docs/skills-guide.md).
 
 ### Purge all external skills (reset mode)
 

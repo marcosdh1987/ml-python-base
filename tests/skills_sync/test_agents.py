@@ -110,8 +110,19 @@ def test_render_opencode_permission_allows_implementer_to_edit() -> None:
     agents = {a.name: a for a in discover_agents(REPO_ROOT)}
     out = render_agent(_opencode_tool(), agents["implementer"])
     assert "edit: allow" in out
-    assert "bash: allow" in out
     assert "task: deny" in out  # worker, not an orchestrator
+    # Shell is allowed, but git's mutating commands are gated by the
+    # `git-actions` policy rendered as OpenCode's own bash permission map.
+    assert "\n  bash:\n" in out
+    assert '    "*": allow' in out
+    assert '    "git commit*": ask' in out
+
+
+def test_render_opencode_denies_shell_for_a_read_only_agent() -> None:
+    agents = {a.name: a for a in discover_agents(REPO_ROOT)}
+    out = render_agent(_opencode_tool(), agents["planner"])
+    assert "\n  bash: deny\n" in out
+    assert "git commit" not in out
 
 
 def test_projection_writes_and_prunes(tmp_path: Path) -> None:

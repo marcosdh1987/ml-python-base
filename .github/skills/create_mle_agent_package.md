@@ -1,6 +1,20 @@
 ---
 name: create_mle_agent_package
 description: Use when designing a reusable pip-installable MLE agent package with governed scaffolding, runtime adapters, and validation plans.
+summary: Spec and file plan for a pip-installable, provider-agnostic MLE agent package
+family: architecture-contracts
+visibility: optional
+profile: python-ml
+auto_trigger: true
+maturity: stable
+risk: writes-files
+small_model_path: false
+triggers:
+  - mle agent package
+  - pip-installable agent
+  - agent package scaffold
+  - langchain package
+  - model_core
 ---
 
 # Skill: create_mle_agent_package

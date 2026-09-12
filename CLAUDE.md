@@ -111,42 +111,58 @@ Antigravity uses a separate generated native workspace mirror at:
 If overlap exists, prefer `.github/skills/` over `.github/skills-external/`.
 
 <!-- BEGIN GENERATED SKILLS (managed by skills_sync; do not edit) -->
-The governed skills below are projected into `.claude/skills/`. Internal skills are the source of truth and take precedence over external synced skills on name conflicts.
+Skills are projected into `.claude/skills/`; governed sources: `.github/skills/` (internal, wins on name conflicts) and `.github/skills-external/` (vendored). Full catalog (families, visibility, profiles): `docs/generated/skills-catalog.md`.
 
-**Internal skills:**
+**Start here — match the intent, then read that skill (9 entrypoints own every task):**
 
-- `bootstrap_company_brain` — Use when instantiating this company-brain template for a new organization — guides the interview-and-mine process that fills domain, glossary, conventions, architecture and ownership from real sources (repos, docs, team interviews), replacing every _PENDIENTE_ marker with verified content.
-- `bootstrap_project` — Use when starting a new project from a fresh clone of this template — guides the rename via `make init`, environment setup, template-remote configuration, and the first green quality gate, in any supported AI tool.
-- `brainstorm_quick` — Use for fast ideation on a scoped feature when no written spec or formal approval is needed — diverge on options, weigh trade-offs, converge on a recommendation, then hand off to `plan_and_execute_feature`. For new features or design-impacting work that needs a written, user-approved spec, use the external `brainstorming` skill (full design gate) instead.
-- `create_domain_contract` — Use when defining a typed domain contract — an application use case (business flow) or a repository interface (persistence boundary) — with clean architecture boundaries.
-- `create_mle_agent_package` — Use when designing a reusable pip-installable MLE agent package with governed scaffolding, runtime adapters, and validation plans.
-- `generate_e2e_tests` — Use when generating end-to-end tests for critical user, API, CLI, or service flows.
-- `generate_implementation_docs` — Use when creating or updating implementation documentation for completed code or test changes.
-- `generate_migration_plan` — Use when planning low-risk code, data, or architecture migrations with validation and rollback steps.
-- `plan_and_execute_feature` — Use when delivering a feature through explicit planning, phased execution, validation, and governed handoff — or when implementing/fixing already-scoped engineering work via the execute_only mode.
-- `refactor_to_clean_architecture` — Use when refactoring modules to align dependency direction, responsibilities, and boundaries with clean architecture.
-- `research_current_info` — Use when the user asks for up-to-date or current information, to confirm something is still accurate, or when a task depends on facts that may have changed since training (library versions, APIs, pricing, releases, news, current best practices). Runs a governed web search with a curated domain allow/deny policy and cited, recency-checked results.
-- `retrospective` — Use at the end of a unit of work to capture durable, non-obvious knowledge into project memory (memory/) and flag decisions worth an ADR. Turns one-off discoveries into compounding, persistent context.
-- `systematic_debugging` — Use when diagnosing a bug, failing test, or unexpected behavior — drive a methodical reproduce → isolate → hypothesize → fix → verify loop instead of guessing. Prevents thrashing and repeated edits to the same file.
-- `validate_module_structure` — Use when validating module placement, dependency direction, and structure against repository governance.
-- `verify_changes` — Use before considering work done — run the read-only quality gate and tests, interpret failures, and confirm the change is correct. The verification step of the working loop.
+- start a project from this template → `bootstrap_project`
+- explore a scoped idea or compare options → `brainstorm_quick` (no spec, no approval gate)
+- design a new subsystem or a design-impacting change → `brainstorming` (written spec + user approval before code)
+- implement a feature or an approved plan → `plan_and_execute_feature` (`mode: execute_only` when the plan already exists)
+- fix a failing test, traceback or wrong behavior → `systematic_debugging`
+- plan a code, data or architecture migration → `generate_migration_plan`
+- check current facts (versions, APIs, releases) → `research_current_info`
+- verify the work before calling it done → `verify_changes`
+- review the finished diff → `requesting-code-review`
 
-**External synced skills:**
+**Internal primitives (12)** — composed by the entrypoints; invoke one directly only when the task is exactly that step:
 
-- `brainstorming` — You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.
-- `executing-plans` — Use when you have a written implementation plan to execute in a separate session with review checkpoints
-- `finishing-a-development-branch` — Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
-- `requesting-code-review` — Use when completing tasks, implementing major features, or before merging to verify work meets requirements
-- `source-command-retro` — Close out work with a short retrospective and update project memory.
-- `source-command-verify` — Run the read-only quality gate and tests, then summarize results.
-- `subagent-driven-development` — Use when executing implementation plans with independent tasks in the current session
-- `test-driven-development` — Use when implementing any feature or bugfix, before writing implementation code
-- `ui-ux-pro-max` — UI/UX design intelligence for web and mobile. Includes 50+ styles, 161 color palettes, 57 font pairings, 161 product types, 99 UX guidelines, and 25 chart types across 10 stacks (React, Next.js, Vue, Svelte, SwiftUI, React Native, Flutter, Tailwind, shadcn/ui, and HTML/CSS). Actions: plan, build, create, design, implement, review, fix, improve, optimize, enhance, refactor, and check UI/UX code. Projects: website, landing page, dashboard, admin panel, e-commerce, SaaS, portfolio, blog, and mobile app. Elements: button, modal, navbar, sidebar, card, table, form, and chart. Styles: glassmorphism, claymorphism, minimalism, brutalism, neumorphism, bento grid, dark mode, responsive, skeuomorphism, and flat design. Topics: color systems, accessibility, animation, layout, typography, font pairing, spacing, interaction states, shadow, and gradient. Integrations: shadcn/ui MCP for component search and examples.
-- `using-git-worktrees` — Use when starting feature work that needs isolation from current workspace or before executing implementation plans - ensures an isolated workspace exists via native tools or git worktree fallback
-- `writing-clearly-and-concisely` — Apply Strunk's timeless writing rules to ANY prose humans will read—documentation, commit messages, error messages, explanations, reports, or UI text. Makes your writing clearer, stronger, and more professional.
-- `writing-plans` — Use when you have a spec or requirements for a multi-step task, before touching code
+- `create_domain_contract` — Define a typed use case or repository interface with clean-architecture boundaries
+- `executing-plans` — Execute a written plan in a separate session with review checkpoints (no subagents)
+- `finishing-a-development-branch` — Close a finished branch: verify tests, then present merge / PR / keep / discard options to the user
+- `generate_e2e_tests` — End-to-end tests for a critical user, API, CLI or service flow
+- `generate_implementation_docs` — Write or update the `docs/` page for a completed change: what, why, how verified
+- `refactor_to_clean_architecture` — Realign a module's dependency direction and boundaries, behavior preserved
+- `retrospective` — Persist durable, non-obvious learnings into `memory/` and flag ADR-worthy decisions
+- `subagent-driven-development` — Execute a plan with one fresh subagent per task and a two-stage review (spec, then quality)
+- `test-driven-development` — Write the failing test first, watch it fail, then the minimal code to pass
+- `using-git-worktrees` — Work in an isolated worktree: prefer the platform's native tool, fall back to git worktree
+- `validate_module_structure` — Check module placement and dependency direction against governance
+- `writing-plans` — Turn an approved spec into a bite-sized implementation plan with exact files, code and checks
 
-Refresh this layout with `make sync-skills` (or `make check-sync` to verify it is current).
+**Optional / specialist (3)** — use one when the request is in its domain, even if no entrypoint fits:
+
+- `create_mle_agent_package` (python-ml) — Spec and file plan for a pip-installable, provider-agnostic MLE agent package
+- `ui-ux-pro-max` (frontend) — Any UI/UX request — landing pages, dashboards, components, CSS/Tailwind/React styling, palettes, typography, accessibility
+- `writing-clearly-and-concisely` (core) — Apply Strunk's rules to prose humans will read: docs, messages, reports, UI text
+
+**Routing rules:**
+
+- Bounded, scoped change (a flag, a timeout, one function) → `brainstorm_quick` when options are unclear, otherwise straight to `plan_and_execute_feature`. New subsystem, significant design impact, or ambiguous architecture → `brainstorming` (written spec, user approval), then `writing-plans`.
+- An approved plan or an already-scoped fix → `plan_and_execute_feature` with `mode: execute_only`; do not reopen design.
+- A failing test, traceback, or unexpected behavior → `systematic_debugging` before any edit; `test-driven-development` for the regression test.
+- Before declaring anything done → `verify_changes`. For a review of the finished diff → `requesting-code-review`.
+- Skip a skill only when the user asks for a tiny edit; say which skill was skipped and why.
+
+**Small or self-hosted model:** Follow `LOCAL_AGENT.md`: one root cause or one increment per turn, one or few files per step, edit never rewrite, declare `Target file / Expected change / Validation` before editing, run the validation command, then stop. Drive the work with `plan_and_execute_feature` in `mode: local_model_32k`. Skills with an explicit small-context mode: `brainstorm_quick`, `plan_and_execute_feature`, `systematic_debugging`, `verify_changes`.
+
+**Policies** (override any skill step that contradicts them):
+
+- **Git actions are recommendations:** Agents may recommend git actions and prepare commands, diffs, commit messages and PR text. They MUST NOT run `git commit`, `git push`, merge, rebase, or delete branches unless the user explicitly asks for that exact action in the current session; where a skill step says commit/push/merge, hand the prepared command to the user instead.
+
+**Legacy names** (not projected; use the replacement): `create_repository_interface` → `create_domain_contract`; `create_use_case` → `create_domain_contract`; `execute_engineering_task` → `plan_and_execute_feature`; `source-command-retro` → `retrospective`; `source-command-verify` → `verify_changes`.
+
+Refresh with `make sync-skills`; `make check-sync` verifies it is current.
 <!-- END GENERATED SKILLS -->
 
 ## Automation
@@ -187,3 +203,4 @@ Use explicit orchestration for complex tasks:
 - Prefer `make` targets and `uv` workflows.
 - When implementing or testing changes, create or update documentation in `docs/`.
 - Use absolute imports only.
+- NEVER perform git commits, git pushes, or branch integrations automatically. Leave all changes unstaged so the user can commit them manually (policy `git-actions`; an explicit user request in the session is the only override).

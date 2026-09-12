@@ -1,6 +1,28 @@
 ---
 name: systematic_debugging
 description: Use when diagnosing a bug, failing test, or unexpected behavior — drive a methodical reproduce → isolate → hypothesize → fix → verify loop instead of guessing. Prevents thrashing and repeated edits to the same file.
+summary: Reproduce → isolate → hypothesize → fix → verify a bug or failing test, one cause at a time
+family: quality-testing-debugging
+visibility: developer
+profile: core
+auto_trigger: true
+maturity: stable
+risk: writes-files
+small_model_path: true
+triggers:
+  - failing test
+  - fails with
+  - traceback
+  - exception
+  - keyerror
+  - bug
+  - does not work
+  - doesn't work
+  - unexpected behavior
+  - regression
+  - crash
+  - error when
+  - broken
 ---
 
 # Skill: systematic_debugging

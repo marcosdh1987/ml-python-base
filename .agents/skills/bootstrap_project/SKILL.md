@@ -1,6 +1,22 @@
 ---
 name: bootstrap_project
 description: Use when starting a new project from a fresh clone of this template — guides the rename via `make init`, environment setup, template-remote configuration, and the first green quality gate, in any supported AI tool.
+summary: Turn a fresh clone into a named project: `make init`, env, template remote, first green gate
+family: lifecycle
+visibility: developer
+profile: core
+auto_trigger: true
+maturity: stable
+risk: writes-files
+small_model_path: false
+triggers:
+  - start a new project
+  - fresh clone
+  - make init
+  - bootstrap the project
+  - initialize the template
+  - rename the package
+  - new project from the template
 ---
 
 # Skill: bootstrap_project
@@ -37,8 +53,8 @@ Antigravity, or Copilot: the heavy lifting is system-enforced by
 6. Verify the exit gate: `make ci` must be green before declaring success.
    If it is red, fix locally with `make fix` / `make format` — never weaken
    the checks.
-7. Have the user review the diff, then commit the initialization as a single
-   commit.
+7. Hand the diff to the user for review; the user commits the initialization as a
+   single commit (agents do not commit — see the `git-actions` policy).
 
 ## Output Format
 

@@ -63,6 +63,12 @@ the tag only records a commit that already carries it. Creating the tag first in
 that relationship and the preflight will reject the release — by design, since a
 published tag is never moved.
 
+**Precondition: stand on `main` with the work already merged.** The flow below is not
+run from a feature branch. `make new-version` derives the number from
+`git diff <latest tag>..HEAD` — committed history, not the working tree — and
+`make release-pr` refuses (`unexpected_dirty`) when anything beyond the three bump
+files is dirty. Merge the feature PR first, then `git switch main && git pull --ff-only`.
+
 ```bash
 # 1. Scaffold the bump (then curate the generated CHANGELOG bullets by hand)
 make new-version

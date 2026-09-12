@@ -14,6 +14,84 @@ All notable changes to this template are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- **Skills catalog v3** (`docs/skills-guide.md`, `docs/generated/skills-catalog.md`,
+  ADR-0002). Every skill now carries catalog metadata — `family`, `visibility`
+  (`developer | internal | optional | hidden | legacy`), `profile`, `auto_trigger`,
+  `maturity`, `risk`, `small_model_path`, `triggers`, `replacement`, `summary` —
+  authored in the frontmatter of internal skills and declared as `[skill.<name>]`
+  overlays in `adapters/registry.toml` for vendored ones. The developer-facing
+  catalog shrinks to nine intent-driven entrypoints; primitives and specialists
+  remain available but no longer compete at the same level. The generated
+  catalog document is written by `make sync-skills` and guarded by
+  `make check-sync`; hand-maintained skill lists were removed from `README.md`,
+  `.github/skills/README.md` and `docs/skills-management.md`.
+- **Projection-time overlays and policies for vendored skills.** A skill with a
+  registry `description` override or a policy gets a generated native `SKILL.md`
+  (governed frontmatter + a short precedence banner + the vendor body verbatim);
+  the vendor source, its lock hash and licence record stay untouched.
+  `[policy.git-actions]` states once that agents may recommend and prepare git
+  actions but MUST NOT commit, push, merge or delete branches unasked; it renders
+  into every adapter and into the six covered Superpowers skills.
+  `tests/skills_sync/test_policies.py` fails if a vendored skill instructs a
+  mutating git action without coverage, and `.claude/settings.json` now asks
+  before `git commit` / `push` / `merge` / `rebase` / branch deletion.
+- **Routing evals.** `tests/routing/scenarios.toml` (30 versioned scenarios:
+  positive, negative, overlap, legacy, small-model, specialist, hidden) run in CI
+  through a deterministic reference router (`skills_sync.routing`); `make route
+  PROMPT=…` explains one decision; `make routing-eval-live` (`scripts/routing_eval.py
+  --live`) asks a real model the same questions, opt-in.
+- Make targets `render-catalog`, `route`, `routing-eval`, `routing-eval-live`;
+  engine subcommands `catalog` and `route`.
+- **Tool-level enforcement of the `git-actions` policy.** The mutating command
+  list lives once in `skills_sync.permissions` and is derived into every dialect
+  a platform offers: Claude Code `permissions.ask`, an OpenCode
+  `permission.bash` glob map (in `opencode.json` **and** in every generated
+  `.opencode/agents/*.md` that may run shell), and VS Code
+  `chat.tools.terminal.autoApprove` rules shipped as
+  `.vscode/settings.recommended.json` for Copilot agent mode. `ask`, never
+  `deny`, so an explicitly requested action still runs. Codex and Antigravity
+  expose no per-command repository primitive and stay instruction-level;
+  `docs/skills-guide.md` carries the matrix.
+- **Four engine extension points, for downstream repositories that project a
+  governed harness into a foreign root**: `linker.link_tool(..., strategy=)`,
+  `linker.add_skills()` (copy without pruning the target's own view),
+  `renderer.render_region/render_tool(..., template_root=)` and
+  `cli.check_drift()` (the programmatic half of `check`). All four apply the
+  catalog rules — legacy skills are still filtered, overlays are still written —
+  and the overlay banner now names the governed path instead of raising when the
+  source lives outside the projection root.
+
+### Changed
+- **`brainstorming` no longer claims every creative task.** Its projected
+  description is the governed one ("design-impacting work: new subsystem,
+  significant architecture change, ambiguous requirements; bounded change →
+  `brainstorm_quick`"); the routing rule is rendered in every adapter and the
+  contradictory "choose the stricter one" prose in `.agents/rules/GEMINI.md` is
+  gone.
+- **Adapter skills block** redesigned for progressive disclosure: intents →
+  primitives → optional → routing rules → small-model line → policies → legacy
+  names. About 19% smaller than the flat 27-line list it replaces.
+- The hand-written "NEVER perform git commits …" runtime rule now exists in all
+  five adapters (it was missing from `CLAUDE.md`, `OPENCODE.md` and Copilot) and
+  names the `git-actions` policy.
+- `template_sync.protocol` is now **2**: adapter templates reference catalog
+  metadata that only the v3 engine provides. Downstream repositories and the
+  harness lab must adopt the platform upgrade (engine + registry `[catalog]`
+  blocks) before syncing protocol-2 governance; `harness-sync-preview` blocks
+  until they do.
+- `make check-sync` additionally verifies generated overlay files, the absence of
+  legacy entries in native views, and the generated catalog document.
+- Catalog validation distinguishes hard errors (invalid vocabulary, legacy without
+  a live replacement, alias collisions) from warnings (references to skills absent
+  from the tree), so `make purge-external-skills` and partial downstream catalogs
+  keep working.
+
+### Removed
+- `source-command-verify` and `source-command-retro` (first-party duplicates of
+  `verify_changes` / `retrospective`, no consumer by name). Their names, and the
+  earlier-retired `execute_engineering_task`, `create_use_case` and
+  `create_repository_interface`, resolve through `[alias.*]` and are listed as
+  legacy names in every adapter.
 - **Internal skills may be folders.** An internal skill is no longer restricted
   to a flat `.github/skills/<name>.md`: it may be a `<name>/` directory with
   `SKILL.md` as its entry point and the scripts, templates or references it runs

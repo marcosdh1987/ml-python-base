@@ -1,7 +1,10 @@
 ---
 name: subagent-driven-development
-description: Use when executing implementation plans with independent tasks in the current session
+description: "Use when executing implementation plans with independent tasks in the current session"
 ---
+
+> **Governed overlay — read first.** Projected by `skills_sync` from `.github/skills-external/subagent-driven-development/SKILL.md` (vendored, unmodified). Repository policy takes precedence over any step below that contradicts it:
+> - **Git actions are recommendations:** Agents may recommend git actions and prepare commands, diffs, commit messages and PR text. They MUST NOT run `git commit`, `git push`, merge, rebase, or delete branches unless the user explicitly asks for that exact action in the current session; where a skill step says commit/push/merge, hand the prepared command to the user instead.
 
 # Subagent-Driven Development
 

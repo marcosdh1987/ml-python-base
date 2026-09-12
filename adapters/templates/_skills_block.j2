@@ -1,18 +1,54 @@
-{% if tool.has_native_view %}{% set intro = "The governed skills below are projected into `" ~ ref ~ tool.native_skills_dir ~ "/`. Internal skills are the source of truth and take precedence over external synced skills on name conflicts." %}{% else %}{% set intro = "Read the governed skills below directly from `" ~ ref ~ ".github/skills/` (internal) and `" ~ ref ~ ".github/skills-external/` (external). Internal skills take precedence over external synced skills on name conflicts." %}{% endif %}
-{{ intro }}
+{% if tool.has_native_view %}{% set intro = "Skills are projected into `" ~ ref ~ tool.native_skills_dir ~ "/`; governed sources: `" ~ ref ~ ".github/skills/` (internal, wins on name conflicts) and `" ~ ref ~ ".github/skills-external/` (vendored)." %}{% else %}{% set intro = "Read skills from `" ~ ref ~ ".github/skills/` (internal, wins on name conflicts) and `" ~ ref ~ ".github/skills-external/` (vendored)." %}{% endif %}
+{% set covered = intents | map(attribute="skill") | list %}
+{{ intro }}{% if catalog_path %} Full catalog (families, visibility, profiles): `{{ ref }}{{ catalog_path }}`.{% endif %}
 
-**Internal skills:**
 
-{% for s in internal_skills %}
-- `{{ s.name }}` — {{ s.description }}
+**Start here — match the intent, then read that skill ({{ view.entrypoints | length }} entrypoints own every task):**
+
+{% for intent in intents %}
+- {{ intent.want }} → `{{ intent.skill }}`{% if intent.note %} ({{ intent.note }}){% endif %}
+
 {% endfor %}
-{% if external_skills %}
+{% for s in view.entrypoints if s.name not in covered %}
+- `{{ s.name }}` — {{ s.summary }}
+{% endfor %}
 
-**External synced skills:**
+**Internal primitives ({{ view.primitives | length }})** — composed by the entrypoints; invoke one directly only when the task is exactly that step:
 
-{% for s in external_skills %}
-- `{{ s.name }}` — {{ s.description }}
+{% for s in view.primitives %}
+- `{{ s.name }}` — {{ s.summary }}
+{% endfor %}
+{% if view.optional %}
+
+**Optional / specialist ({{ view.optional | length }})** — use one when the request is in its domain, even if no entrypoint fits:
+
+{% for s in view.optional %}
+- `{{ s.name }}` ({{ s.meta.profile }}) — {{ s.summary }}
 {% endfor %}
 {% endif %}
+{% if routing_rules %}
 
-Refresh this layout with `{{ refresh_command }}` (or `make check-sync` to verify it is current).
+**Routing rules:**
+
+{% for rule in routing_rules %}
+- {{ rule }}
+{% endfor %}
+{% endif %}
+{% if view.small_model %}
+
+**Small or self-hosted model:** {{ small_model_note }} Skills with an explicit small-context mode: {% for s in view.small_model %}`{{ s.name }}`{% if not loop.last %}, {% endif %}{% endfor %}.
+{% endif %}
+{% if policies %}
+
+**Policies** (override any skill step that contradicts them):
+
+{% for p in policies %}
+- **{{ p.title }}:** {{ p.summary }}
+{% endfor %}
+{% endif %}
+{% if view.aliases %}
+
+**Legacy names** (not projected; use the replacement): {% for a in view.aliases %}`{{ a.name }}` → `{{ a.replacement }}`{% if not loop.last %}; {% endif %}{% endfor %}.
+{% endif %}
+
+Refresh with `{{ refresh_command }}`; `make check-sync` verifies it is current.

@@ -1,7 +1,10 @@
 ---
 name: finishing-a-development-branch
-description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
+description: "Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup"
 ---
+
+> **Governed overlay — read first.** Projected by `skills_sync` from `.github/skills-external/finishing-a-development-branch/SKILL.md` (vendored, unmodified). Repository policy takes precedence over any step below that contradicts it:
+> - **Git actions are recommendations:** Agents may recommend git actions and prepare commands, diffs, commit messages and PR text. They MUST NOT run `git commit`, `git push`, merge, rebase, or delete branches unless the user explicitly asks for that exact action in the current session; where a skill step says commit/push/merge, hand the prepared command to the user instead.
 
 # Finishing a Development Branch
 

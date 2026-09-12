@@ -38,7 +38,8 @@ link_strategy = "none"
 def test_repository_registry_declares_sync_protocol_and_disjoint_channels() -> None:
     registry = load_registry(REPO_ROOT / "adapters/registry.toml")
 
-    assert registry.template_sync.protocol == 1
+    # Protocol 2 = skills catalog v3 (adapter templates need catalog metadata).
+    assert registry.template_sync.protocol == 2
     assert ".github/skills" in registry.template_sync.governance_paths
     assert "src/ml_python_base/skills_sync" in registry.template_sync.platform_paths
     assert not (

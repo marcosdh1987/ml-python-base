@@ -115,12 +115,7 @@ where a formal license grant is required.
 Not third-party
 --------------------------------------------------------------------------------
 
-Two entries under `.github/skills-external/` are NOT third-party content. They
-are first-party skills generated from this repository's own slash commands and
-are covered by the Apache-2.0 license above:
-
-    .github/skills-external/source-command-retro/    (from .claude/commands/retro.md)
-    .github/skills-external/source-command-verify/   (from .claude/commands/verify.md)
-
-They live under `skills-external/` for mechanical reasons in the sync engine, not
-because their origin is external.
+The two first-party skills that used to live under `.github/skills-external/`
+(`source-command-retro`, `source-command-verify`) were retired in skills catalog v3;
+their names resolve to the governed `retrospective` and `verify_changes` skills
+(see `adapters/registry.toml` `[alias.*]`).

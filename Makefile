@@ -386,9 +386,37 @@ render-adapters:
 sync-skills:
 	@$(SKILLS_SYNC) sync
 
-# Fail if any generated skill artifact is stale (CI drift gate).
+# Regenerate the derived skills catalog document (docs/generated/skills-catalog.md).
+render-catalog:
+	@$(SKILLS_SYNC) catalog
+
+# Fail if any generated skill artifact is stale (CI drift gate). Covers adapter
+# regions, native views (overlays, legacy removals), manifests, the lock file,
+# projected agents, and the generated skills catalog.
 check-sync:
 	@$(SKILLS_SYNC) check
+
+# Route one request through the catalog with the deterministic reference router.
+# Usage: make route PROMPT="pytest fails with KeyError in repository.py"
+route:
+	@[ -n "$(PROMPT)" ] || { echo "❌ Usage: make route PROMPT=\"<request>\""; exit 1; }
+	@$(SKILLS_SYNC) route "$(PROMPT)"
+
+# Deterministic skill-routing evals (tests/routing/scenarios.toml). Runs in CI
+# as part of `make check`; this target runs just that suite.
+routing-eval:
+	@if [ ! -d .venv ]; then make install; fi
+	@. $(VENV_DIR)/bin/activate && PYTHONPATH=${PWD}/src pytest tests/routing -q --no-cov
+
+# Opt-in live routing eval: asks a real model (claude CLI by default) which skill
+# it would pick for every scenario and compares with the expectations.
+# Usage: make routing-eval-live [RUNNER=claude|opencode] [MODEL=...] [ADAPTER=CLAUDE.md]
+routing-eval-live:
+	@uv run python scripts/routing_eval.py --live \
+		$(if $(RUNNER),--runner $(RUNNER),) \
+		$(if $(MODEL),--model $(MODEL),) \
+		$(if $(ADAPTER),--adapter $(ADAPTER),) \
+		$(if $(OUT),--out $(OUT),)
 
 # Docs-coverage gate: changes under src/ or tests/ must ship with at least one
 # updated file under docs/. Same rule the PR workflow enforces; run locally so a
@@ -465,6 +493,10 @@ help:
 	@echo "  make render-adapters     Regenerate the managed skill region in every adapter file"
 	@echo "  make sync-skills         Sync external skills to .github/skills-external and refresh native adapters"
 	@echo "  make check-sync          Fail if generated skill artifacts are stale (CI drift gate)"
+	@echo "  make render-catalog      Regenerate docs/generated/skills-catalog.md"
+	@echo "  make route PROMPT=..     Route one request through the skills catalog"
+	@echo "  make routing-eval        Deterministic skill-routing evals (tests/routing)"
+	@echo "  make routing-eval-live   Opt-in live routing eval against a real model"
 	@echo "  make purge-external-skills Purge all external skills and reset metadata"
 	@echo "  make clean               Clean cache and generated files"
 	@echo ""
@@ -482,4 +514,4 @@ clean:
 .DEFAULT_GOAL := help
 
 # Declare phony targets
-.PHONY: init install setup-hooks opencode opencode-doctor toolbelt-doctor clean help generate-requirements test test-unit format lint lint-fast fix fix-force check typecheck ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-agents render-adapters sync-skills check-sync check-docs-coverage purge-external-skills
+.PHONY: init install setup-hooks opencode opencode-doctor toolbelt-doctor clean help generate-requirements test test-unit format lint lint-fast fix fix-force check typecheck ci template-remote-setup template-sync-preview template-sync-merge template-sync-rebase setup-claude-skills setup-antigravity-skills setup-opencode-skills sync-agents render-adapters render-catalog route routing-eval routing-eval-live sync-skills check-sync check-docs-coverage purge-external-skills

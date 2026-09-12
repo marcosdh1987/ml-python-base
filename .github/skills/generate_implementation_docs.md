@@ -1,6 +1,20 @@
 ---
 name: generate_implementation_docs
 description: Use when creating or updating implementation documentation for completed code or test changes.
+summary: Write or update the `docs/` page for a completed change: what, why, how verified
+family: documentation-memory
+visibility: internal
+profile: core
+auto_trigger: true
+maturity: stable
+risk: writes-files
+small_model_path: false
+triggers:
+  - implementation docs
+  - document the change
+  - update docs/
+  - docs coverage
+  - write the documentation
 ---
 
 # Skill: generate_implementation_docs

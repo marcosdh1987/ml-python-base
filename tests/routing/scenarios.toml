@@ -1,0 +1,294 @@
+# Versioned skill-routing scenarios.
+#
+# Each scenario states what the catalog should do with one user request. They
+# run deterministically in CI through the reference router
+# (ml_python_base.skills_sync.routing) and, opt-in, against a live model with
+# `make routing-eval-live` (scripts/routing_eval.py).
+#
+# Fields:
+#   id, tags            — tags cover: positive, negative, overlap, legacy,
+#                         small-model, specialist, hidden
+#   prompt              — the user request
+#   expected_family     — family of the chosen skill ("" when none expected)
+#   expected_skills     — any of these is a pass (empty + expect_none = no route)
+#   forbidden_skills    — must not be chosen
+#   expected_mode       — full | execute_only | local_model_32k (optional)
+#   reason              — why this is the right routing
+#   ambiguous_ok        — tolerate a tie at the top (default false)
+
+schema_version = 1
+
+[[scenario]]
+id = "bug-keyerror"
+tags = ["positive"]
+prompt = "pytest fails with KeyError in repository.py"
+expected_family = "quality-testing-debugging"
+expected_skills = ["systematic_debugging"]
+forbidden_skills = ["brainstorming", "brainstorm_quick", "plan_and_execute_feature"]
+reason = "A failing test is a debugging loop, never a design gate."
+
+[[scenario]]
+id = "design-multitenant-subsystem"
+tags = ["positive", "overlap"]
+prompt = "I need to design a new multi-tenant ingestion subsystem"
+expected_family = "ideation"
+expected_skills = ["brainstorming"]
+forbidden_skills = ["brainstorm_quick", "plan_and_execute_feature"]
+reason = "New subsystem with design impact goes through the written-spec gate."
+
+[[scenario]]
+id = "bounded-timeout-change"
+tags = ["negative", "overlap"]
+prompt = "Change API timeout from 10 to 20 seconds"
+expected_family = "planning-execution"
+expected_skills = ["plan_and_execute_feature", "brainstorm_quick"]
+forbidden_skills = ["brainstorming"]
+reason = "A bounded change must not trigger the mandatory full design gate."
+
+[[scenario]]
+id = "approved-plan-execute-only"
+tags = ["positive", "overlap"]
+prompt = "Implement the already approved plan in docs/foo.md"
+expected_family = "planning-execution"
+expected_skills = ["plan_and_execute_feature"]
+forbidden_skills = ["brainstorming", "brainstorm_quick"]
+expected_mode = "execute_only"
+reason = "An approved plan enters execution directly."
+
+[[scenario]]
+id = "final-quality-checks"
+tags = ["positive"]
+prompt = "Run the final quality checks"
+expected_family = "quality-testing-debugging"
+expected_skills = ["verify_changes"]
+forbidden_skills = ["requesting-code-review"]
+reason = "The verification step is verify_changes."
+
+[[scenario]]
+id = "is-it-done"
+tags = ["positive"]
+prompt = "Is it done? run the checks and report"
+expected_family = "quality-testing-debugging"
+expected_skills = ["verify_changes"]
+forbidden_skills = []
+reason = "Completion claims require the read-only gate."
+
+[[scenario]]
+id = "legacy-source-command-verify"
+tags = ["legacy"]
+prompt = "Use source-command-verify on this branch"
+expected_family = "quality-testing-debugging"
+expected_skills = ["verify_changes"]
+forbidden_skills = ["source-command-verify"]
+reason = "Retired first-party alias resolves to the governed skill."
+
+[[scenario]]
+id = "legacy-source-command-retro"
+tags = ["legacy"]
+prompt = "run source-command-retro"
+expected_family = "documentation-memory"
+expected_skills = ["retrospective"]
+forbidden_skills = ["source-command-retro"]
+reason = "Retired first-party alias resolves to the governed skill."
+
+[[scenario]]
+id = "legacy-execute-engineering-task"
+tags = ["legacy", "overlap"]
+prompt = "Run execute_engineering_task for the login bug"
+expected_family = "planning-execution"
+expected_skills = ["plan_and_execute_feature"]
+forbidden_skills = ["execute_engineering_task"]
+reason = "The removed orchestrator maps to the canonical one (execute_only)."
+
+[[scenario]]
+id = "legacy-create-use-case"
+tags = ["legacy"]
+prompt = "create_use_case for order placement"
+expected_family = "architecture-contracts"
+expected_skills = ["create_domain_contract"]
+forbidden_skills = ["create_use_case"]
+reason = "Merged contract skill replaces the old pair."
+
+[[scenario]]
+id = "small-model-spike"
+tags = ["small-model"]
+prompt = "Using a local model at 32k context, build a small CLI step by step"
+expected_family = "planning-execution"
+expected_skills = ["plan_and_execute_feature"]
+forbidden_skills = ["brainstorming", "subagent-driven-development"]
+expected_mode = "local_model_32k"
+reason = "Small models take the backlog-per-turn path of the feature entrypoint."
+
+[[scenario]]
+id = "small-model-bugfix"
+tags = ["small-model"]
+prompt = "qwen on LM Studio: test_parse fails with AssertionError, fix one cause"
+expected_family = "quality-testing-debugging"
+expected_skills = ["systematic_debugging"]
+forbidden_skills = ["brainstorming"]
+expected_mode = "local_model_32k"
+reason = "Weak-model debugging keeps one root cause per turn."
+
+[[scenario]]
+id = "specialist-mle-package"
+tags = ["specialist"]
+prompt = "Scaffold a pip-installable MLE agent package with a FastAPI adapter"
+expected_family = "architecture-contracts"
+expected_skills = ["create_mle_agent_package"]
+forbidden_skills = ["plan_and_execute_feature"]
+reason = "Optional python-ml specialist is still reachable when named by intent."
+
+[[scenario]]
+id = "specialist-ui"
+tags = ["specialist", "overlap"]
+prompt = "Design a landing page with a dark glassmorphism style and tailwind"
+expected_family = "specialist"
+expected_skills = ["ui-ux-pro-max"]
+forbidden_skills = ["brainstorming"]
+reason = "UI styling work goes to the frontend specialist, not the design gate."
+
+[[scenario]]
+id = "research-latest-version"
+tags = ["positive"]
+prompt = "What is the latest version of ruff and did the config format change?"
+expected_family = "research"
+expected_skills = ["research_current_info"]
+forbidden_skills = ["plan_and_execute_feature"]
+reason = "Volatile facts need the governed web search."
+
+[[scenario]]
+id = "migration-plan"
+tags = ["positive"]
+prompt = "Plan the migration from SQLite to Postgres with rollback"
+expected_family = "planning-execution"
+expected_skills = ["generate_migration_plan"]
+forbidden_skills = ["brainstorming"]
+reason = "Migrations get a phased, reversible plan."
+
+[[scenario]]
+id = "e2e-tests"
+tags = ["positive"]
+prompt = "Generate end-to-end tests for the checkout API flow"
+expected_family = "quality-testing-debugging"
+expected_skills = ["generate_e2e_tests"]
+forbidden_skills = []
+reason = "A primitive is invoked directly when the task is exactly that step."
+
+[[scenario]]
+id = "implementation-docs"
+tags = ["positive"]
+prompt = "Write the documentation for the change we just finished"
+expected_family = "documentation-memory"
+expected_skills = ["generate_implementation_docs"]
+forbidden_skills = []
+reason = "Docs for a finished change are the documentation primitive."
+
+[[scenario]]
+id = "retrospective"
+tags = ["positive"]
+prompt = "Close out the work and record the learnings in memory"
+expected_family = "documentation-memory"
+expected_skills = ["retrospective"]
+forbidden_skills = []
+reason = "Compound step of the working loop."
+
+[[scenario]]
+id = "domain-contract"
+tags = ["positive"]
+prompt = "Define a repository interface for orders with typed inputs"
+expected_family = "architecture-contracts"
+expected_skills = ["create_domain_contract"]
+forbidden_skills = []
+reason = "Persistence boundary contract."
+
+[[scenario]]
+id = "refactor-boundaries"
+tags = ["positive", "overlap"]
+prompt = "The service layer imports the ORM directly, decouple it and fix the dependency direction"
+expected_family = "architecture-contracts"
+expected_skills = ["refactor_to_clean_architecture"]
+forbidden_skills = ["systematic_debugging"]
+reason = "Boundary violations are refactors, not bugs."
+
+[[scenario]]
+id = "code-review-before-merge"
+tags = ["positive", "overlap"]
+prompt = "Please do a code review of my changes before merging"
+expected_family = "quality-testing-debugging"
+expected_skills = ["requesting-code-review"]
+forbidden_skills = []
+reason = "Review of a finished diff outranks the generic gate."
+
+[[scenario]]
+id = "tdd-primitive"
+tags = ["positive", "overlap"]
+prompt = "Write the test first, then implement the parser"
+expected_family = "quality-testing-debugging"
+expected_skills = ["test-driven-development"]
+forbidden_skills = []
+reason = "TDD requested explicitly wins over the feature entrypoint."
+
+[[scenario]]
+id = "bootstrap-project"
+tags = ["positive"]
+prompt = "I just cloned the template, start a new project called churn_predictor"
+expected_family = "lifecycle"
+expected_skills = ["bootstrap_project"]
+forbidden_skills = ["brainstorming"]
+reason = "Post-clone initialization."
+
+[[scenario]]
+id = "quick-brainstorm-caching"
+tags = ["positive", "overlap"]
+prompt = "Which approach should we use for caching the model predictions? compare options"
+expected_family = "ideation"
+expected_skills = ["brainstorm_quick"]
+forbidden_skills = ["brainstorming"]
+reason = "Scoped option comparison stays in the lightweight ideation path."
+
+[[scenario]]
+id = "finish-branch"
+tags = ["positive"]
+prompt = "I'm done with the branch, open a pull request"
+expected_family = "git-delivery"
+expected_skills = ["finishing-a-development-branch"]
+forbidden_skills = []
+reason = "Branch finishing presents options; the git policy keeps it from pushing unasked."
+
+[[scenario]]
+id = "isolated-worktree"
+tags = ["positive"]
+prompt = "Create an isolated workspace for this feature branch"
+expected_family = "git-delivery"
+expected_skills = ["using-git-worktrees"]
+forbidden_skills = []
+reason = "Workspace isolation primitive."
+
+[[scenario]]
+id = "subagent-execution"
+tags = ["positive", "overlap"]
+prompt = "Execute this plan by dispatching independent tasks to subagents"
+expected_family = "planning-execution"
+expected_skills = ["subagent-driven-development"]
+forbidden_skills = ["executing-plans"]
+expected_mode = "execute_only"
+reason = "Parallel plan execution with subagents."
+
+[[scenario]]
+id = "hidden-company-brain"
+tags = ["hidden"]
+prompt = "Run bootstrap_company_brain for ACME"
+expected_family = "lifecycle"
+expected_skills = ["bootstrap_company_brain"]
+forbidden_skills = []
+reason = "Hidden skills stay usable when named explicitly."
+
+[[scenario]]
+id = "negative-greeting"
+tags = ["negative"]
+prompt = "hello, what can you do?"
+expected_family = ""
+expected_skills = []
+forbidden_skills = ["brainstorming", "plan_and_execute_feature"]
+expect_none = true
+reason = "No engineering intent: no skill should fire."
