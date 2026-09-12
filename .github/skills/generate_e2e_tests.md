@@ -1,6 +1,22 @@
 ---
 name: generate_e2e_tests
 description: Use when generating end-to-end tests for critical user, API, CLI, or service flows.
+summary: End-to-end tests for a critical user, API, CLI or service flow
+family: quality-testing-debugging
+visibility: internal
+profile: core
+auto_trigger: true
+maturity: stable
+risk: writes-files
+small_model_path: false
+triggers:
+  - end-to-end test
+  - e2e
+  - end to end
+  - integration flow test
+  - api flow test
+  - cli flow test
+  - critical flow
 ---
 
 # Skill: generate_e2e_tests

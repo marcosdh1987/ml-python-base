@@ -24,6 +24,7 @@ from ml_python_base.skills_sync.models import (
     Agent,
     ToolSpec,
 )
+from ml_python_base.skills_sync.permissions import opencode_bash_permission
 
 AGENTS_DIR = Path(".github/agents")
 _EXCLUDED_STEMS = frozenset({"README"})
@@ -175,6 +176,17 @@ def _render_opencode(agent: Agent) -> str:
     # allow the agent's declared tools, deny every other controlled key.
     allowed = {_OPENCODE_PERM[t] for t in agent.allowed_tools if t in _OPENCODE_PERM}
     for key in sorted(_OPENCODE_PERM.values()):
+        if key == "bash" and key in allowed:
+            # An agent that may run shell may not run git's mutating commands
+            # unattended: the `git-actions` policy, as OpenCode's own primitive.
+            # Insertion order matters (last matching rule wins), so the
+            # catch-all stays first.
+            front.append("  bash:")
+            front += [
+                f'    "{pattern}": {decision}'
+                for pattern, decision in opencode_bash_permission().items()
+            ]
+            continue
         front.append(f"  {key}: {'allow' if key in allowed else 'deny'}")
     front.append("---")
     return "\n".join(front) + "\n\n" + _body_with_footer(agent) + "\n"

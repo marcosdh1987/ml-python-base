@@ -1,6 +1,24 @@
 ---
 name: verify_changes
 description: Use before considering work done — run the read-only quality gate and tests, interpret failures, and confirm the change is correct. The verification step of the working loop.
+summary: Run the read-only gate (`make check`, `make check-sync`) and report pass/fail honestly before calling work done
+family: quality-testing-debugging
+visibility: developer
+profile: core
+auto_trigger: true
+maturity: stable
+risk: read-only
+small_model_path: true
+triggers:
+  - verify
+  - run the checks
+  - quality gate
+  - make check
+  - is it done
+  - final checks
+  - run the tests and report
+  - quality checks
+  - before merging
 ---
 
 # Skill: verify_changes

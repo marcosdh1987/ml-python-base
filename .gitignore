@@ -39,7 +39,12 @@ bandit-report.json
 semgrep-report.json
 
 # IDEs and editors
-.vscode/
+# `.vscode/*`, not `.vscode/`: git cannot re-include a file whose parent
+# directory is excluded, and the template ships one file there — the recommended
+# Copilot agent-mode settings (the `git-actions` policy as VS Code auto-approve
+# rules). Copy it to .vscode/settings.json to adopt it.
+.vscode/*
+!.vscode/settings.recommended.json
 .idea/
 *.swp
 *.swo

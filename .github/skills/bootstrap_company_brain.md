@@ -1,6 +1,18 @@
 ---
 name: bootstrap_company_brain
 description: Use when instantiating this company-brain template for a new organization — guides the interview-and-mine process that fills domain, glossary, conventions, architecture and ownership from real sources (repos, docs, team interviews), replacing every _PENDIENTE_ marker with verified content.
+summary: Populate a company-brain-template clone from real sources and interviews
+family: lifecycle
+visibility: hidden
+profile: company-context
+auto_trigger: false
+maturity: stable
+risk: writes-files
+small_model_path: false
+triggers:
+  - company brain
+  - company-brain-template
+  - _PENDIENTE_
 ---
 
 # Skill: bootstrap_company_brain

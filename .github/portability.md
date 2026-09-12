@@ -117,8 +117,11 @@ designed to survive this:
   projector may drop or down-tier `large`-only agents when the active runtime's
   models cannot satisfy `min context`.
 - **Skill degradation.** Long skills can document a shorter "degraded mode" path
-  for small-window runtimes. `plan_and_execute_feature` and `brainstorm_quick`
-  carry an explicit weak-model path.
+  for small-window runtimes. Skills that have one declare `small_model_path: true`
+  in their catalog metadata (`plan_and_execute_feature`, `systematic_debugging`,
+  `brainstorm_quick`, `verify_changes`), and every adapter's generated skills
+  block names them in its small-model line, so the path reaches the executor
+  without a separate lookup.
 
 ### Self-hosted that won't converge: checklist
 

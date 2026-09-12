@@ -1,1 +1,0 @@
-../../../.github/skills-external/source-command-retro/SKILL.md

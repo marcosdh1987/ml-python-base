@@ -3,6 +3,41 @@
 > Non-obvious facts discovered while working: gotchas, why-it-is-this-way, dead ends
 > to avoid. Append new entries at the top. One fact per entry.
 
+## Skills catalog v3: metadata rides the frontmatter, policy rides the projection — 2026-09-12
+
+Reorganising the 27-skill flat catalog into entrypoints / primitives / optional /
+hidden / legacy surfaced three constraints that shape any future skill change:
+
+1. **Symlink projection means one frontmatter for every tool.** `.claude/skills/x/SKILL.md`
+   is the governed file itself, so a per-tool key (`disable-model-invocation`, a
+   Claude-only description) cannot be added at projection time — unless the projected
+   `SKILL.md` becomes a *generated* file. That is what the overlay does for vendored
+   skills with a policy or a description override; the vendor source, lock hash and
+   NOTICE never change. Anything that assumed "every native entry is a symlink" must
+   branch on content.
+2. **Adapter templates are governance, the engine is platform.** A template that
+   references a new variable breaks every downstream repo that governance-syncs it
+   before adopting the engine (`StrictUndefined: 'intents' is undefined`, verified
+   against the lab's vendored engine). Bump `template_sync.protocol` whenever a
+   template needs a new engine capability; the lab's `harness-sync-preview` then
+   blocks adoption (exit 4) until the platform is upgraded.
+3. **The harness lab's engine copy has diverged** (`projection.py`, `check_drift`
+   export, 7 shared modules differ). A platform upgrade there is a merge of the
+   template's engine *diff*, never a copy of the directory. Its ablation path
+   (`scripts/bench_run.py::build_effective_skills` / `restore_full_skill_views`) must
+   also pass `registry=` to `discover_skills`, or a run regenerates views without
+   overlays and leaves the tree dirty.
+
+**Why it matters:** the three are invisible until a downstream sync or a lab run
+fails; each was found by exercising the lab's own code against the new tree, not by
+unit tests here.
+**How to apply:** new skill → frontmatter metadata + one routing scenario; vendored
+skill that instructs git mutations → `[policy.git-actions].applies_to` (a test
+fails otherwise); retired name → `[alias.*]` (an alias that still finds a directory
+projects it as legacy with a warning); any template change that needs engine support
+→ protocol bump + CHANGELOG migration note. Source: skills catalog v3 work,
+`docs/skills-catalog-v3-audit.md`, ADR-0002.
+
 ## Redistribution rights need a machine gate, not a checklist — 2026-08-20
 
 Instantiating this template for an organization surfaced that it had shipped for

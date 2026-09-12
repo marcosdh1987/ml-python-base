@@ -1,6 +1,23 @@
 ---
 name: brainstorm_quick
 description: Use for fast ideation on a scoped feature when no written spec or formal approval is needed — diverge on options, weigh trade-offs, converge on a recommendation, then hand off to `plan_and_execute_feature`. For new features or design-impacting work that needs a written, user-approved spec, use the external `brainstorming` skill (full design gate) instead.
+summary: Fast ideation for a scoped change: diverge, weigh, converge, hand off to `plan_and_execute_feature`
+family: ideation
+visibility: developer
+profile: core
+auto_trigger: true
+maturity: stable
+risk: read-only
+small_model_path: true
+triggers:
+  - explore options
+  - scoped idea
+  - quick brainstorm
+  - trade-offs
+  - which approach
+  - compare approaches
+  - options for
+  - should we
 ---
 
 # Skill: brainstorm_quick

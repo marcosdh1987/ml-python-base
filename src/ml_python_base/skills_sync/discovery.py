@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
+from ml_python_base.skills_sync.catalog import apply_registry, meta_from_mapping
+from ml_python_base.skills_sync.frontmatter import parse_frontmatter
 from ml_python_base.skills_sync.models import KIND_EXTERNAL, KIND_INTERNAL, Skill
+
+if TYPE_CHECKING:
+    from ml_python_base.skills_sync.models import Registry
 
 INTERNAL_DIR = Path(".github/skills")
 EXTERNAL_DIR = Path(".github/skills-external")
@@ -16,17 +22,25 @@ def discover_skills(
     root: Path,
     internal_dir: Path = INTERNAL_DIR,
     external_dir: Path = EXTERNAL_DIR,
+    registry: Registry | None = None,
 ) -> list[Skill]:
     """Return internal skills (sorted) followed by external skills (sorted).
 
     The ordering matches the legacy shell glob expansion, which is what keeps
     the generated manifest byte-identical. External skills whose name collides
     with an internal skill are dropped (internal precedence).
+
+    Each skill carries the catalog metadata declared in its frontmatter. When a
+    ``registry`` is given, its ``[skill.*]`` overlays and ``[policy.*]`` blocks
+    are merged on top (see :func:`catalog.apply_registry`).
     """
     internal = _discover_internal(root / internal_dir)
     internal_names = {skill.name for skill in internal}
     external = _discover_external(root / external_dir, internal_names)
-    return internal + external
+    skills = internal + external
+    if registry is not None:
+        skills = apply_registry(skills, registry)
+    return skills
 
 
 def _discover_internal(internal_path: Path) -> list[Skill]:
@@ -52,14 +66,7 @@ def _discover_internal(internal_path: Path) -> list[Skill]:
             name = path.stem
         else:
             continue
-        skills.append(
-            Skill(
-                name=name,
-                kind=KIND_INTERNAL,
-                source_path=path,
-                description=_read_description(skill_file),
-            )
-        )
+        skills.append(_build_skill(name, KIND_INTERNAL, path, skill_file))
     skills.sort(key=lambda skill: skill.name)
     return skills
 
@@ -77,35 +84,32 @@ def _discover_external(external_path: Path, internal_names: set[str]) -> list[Sk
         if not skill_file.is_file():
             continue
         skills.append(
-            Skill(
-                name=directory.name,
-                kind=KIND_EXTERNAL,
-                source_path=directory,
-                description=_read_description(skill_file),
-            )
+            _build_skill(directory.name, KIND_EXTERNAL, directory, skill_file)
         )
     return skills
 
 
-def _read_description(skill_file: Path) -> str:
-    """Extract the ``description:`` value from the YAML frontmatter, if present.
+def _build_skill(name: str, kind: str, source: Path, skill_file: Path) -> Skill:
+    front = _read_frontmatter(skill_file)
+    description = " ".join(str(front.get("description", "")).split())
+    return Skill(
+        name=name,
+        kind=kind,
+        source_path=source,
+        description=description,
+        source_description=description,
+        meta=meta_from_mapping(front),
+    )
 
-    Kept dependency-free (no YAML parser): we only need the single-line
-    description used to render adapter skill lists.
-    """
+
+def _read_frontmatter(skill_file: Path) -> dict:
     try:
         text = skill_file.read_text(encoding="utf-8")
     except OSError:
-        return ""
-    if not text.startswith("---"):
-        return ""
-    lines = text.splitlines()
-    for line in lines[1:]:
-        if line.strip() == "---":
-            break
-        if line.startswith("description:"):
-            value = line.split(":", 1)[1].strip()
-            if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
-                value = value[1:-1]
-            return value
-    return ""
+        return {}
+    return parse_frontmatter(text)
+
+
+def _read_description(skill_file: Path) -> str:
+    """Extract the ``description:`` value from the YAML frontmatter, if present."""
+    return " ".join(str(_read_frontmatter(skill_file).get("description", "")).split())

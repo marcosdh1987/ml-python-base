@@ -1,6 +1,36 @@
 ---
 name: plan_and_execute_feature
 description: Use when delivering a feature through explicit planning, phased execution, validation, and governed handoff — or when implementing/fixing already-scoped engineering work via the execute_only mode.
+summary: Deliver a feature in phases (plan, validate architecture, execute, verify); `execute_only` for approved plans, `local_model_32k` for small models
+family: planning-execution
+visibility: developer
+profile: core
+auto_trigger: true
+maturity: stable
+risk: writes-files
+small_model_path: true
+triggers:
+  - implement
+  - implement a feature
+  - build a feature
+  - add a feature
+  - add support for
+  - new endpoint
+  - new command
+  - approved plan
+  - execute the plan
+  - implement the plan
+  - deliver the feature
+  - feature request
+  - build
+  - change
+  - update
+  - bump
+  - increase
+  - reduce
+  - rename
+  - adjust
+  - step by step
 ---
 
 # Skill: plan_and_execute_feature

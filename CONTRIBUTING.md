@@ -60,18 +60,33 @@ An internal skill takes either shape, both under `.github/skills/`:
 - **prose plus files it runs** — a `<name>/` folder with `SKILL.md` as its entry
   point and the scripts, templates or references beside it.
 
-Give it YAML frontmatter with `name` (matching the file or folder name) and a
-`description` written as a trigger, then run `make sync-skills` and commit the
-regenerated views. When the skill invokes a bundled script, tell the agent to
-call the governed path (`.github/skills/<name>/<script>`), never a native copy.
-Details in [.github/skills/README.md](.github/skills/README.md).
+Give it YAML frontmatter with `name` (matching the file or folder name), a
+`description` written as a trigger, a `summary` under 140 characters, and the
+catalog metadata (`family`, `visibility` — `internal` unless it is a genuine
+developer entrypoint — `profile`, `risk`, `triggers`). Add a routing scenario to
+`tests/routing/scenarios.toml`, then run `make sync-skills` and commit the
+regenerated views and `docs/generated/skills-catalog.md`. When the skill invokes a
+bundled script, tell the agent to call the governed path
+(`.github/skills/<name>/<script>`), never a native copy. Details in
+[.github/skills/README.md](.github/skills/README.md) and
+[docs/skills-guide.md](docs/skills-guide.md).
+
+## Retiring a skill
+
+Set `visibility: legacy` plus `replacement: <live skill>` in its frontmatter, or
+delete it and add `[alias.<old>] replacement = "<live skill>"` to
+`adapters/registry.toml`. Either way the old name keeps resolving and stops
+competing in discovery; `make check` refuses a replacement that is not live.
 
 ## Adding an external skill
 
 External skills are third-party content redistributed by this repository. Any new one
 must declare its origin and licence in the `[external_skill]` table of
 `adapters/registry.toml`, or `make check` fails. Add matching attribution to
-[NOTICE](NOTICE). If you cannot establish a licence, do not vendor the skill.
+[NOTICE](NOTICE), a `[skill.<name>]` overlay for its catalog metadata, and — if its
+body instructs commits, pushes or merges — list it under `[policy.git-actions]`
+(`make check` fails otherwise). Never edit the vendored file; the overlay is
+projected over it. If you cannot establish a licence, do not vendor the skill.
 
 ## Licence
 

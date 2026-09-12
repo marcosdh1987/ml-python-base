@@ -12,8 +12,14 @@ schema_version = 1
 # from an immutable template release. Platform paths are an ownership inventory
 # only: they require a separate branch/PR and are never applied by governance
 # sync because they can change the sync engine or repository structure itself.
+#
+# protocol 2 (skills catalog v3): adapter templates reference catalog metadata
+# (families, visibility, policies) that only the protocol-2 engine provides. A
+# downstream repository must adopt the platform upgrade (skills_sync engine +
+# this registry's [catalog] blocks) before syncing protocol-2 governance; the
+# harness lab's `harness-sync-preview` blocks the adoption until it does.
 [template_sync]
-protocol = 1
+protocol = 2
 governance_paths = [
     ".github/skills",
     ".github/skills-external",
@@ -102,6 +108,225 @@ needs_manifest = false
 adapter_file = ".github/copilot-instructions.md"
 adapter_template = "copilot.md.j2"
 
+# =============================================================================
+# Skills catalog (v3) — taxonomy, visibility, profiles, routing and policies.
+#
+# Internal skills declare their metadata in their own frontmatter (family,
+# visibility, profile, auto_trigger, maturity, risk, small_model_path,
+# triggers, replacement, summary). Vendored skills cannot be edited, so their
+# metadata is declared here as a [skill.<name>] overlay; an overlay wins over
+# frontmatter field by field. Every field has a default, so a skill with no
+# metadata still projects as an `internal` primitive of family `unclassified`.
+#
+# Visibility: developer (entrypoint) | internal (primitive) | optional
+# (specialist behind a profile) | hidden (usable when named, never listed) |
+# legacy (not projected; the adapter maps the name to `replacement`).
+# =============================================================================
+
+[catalog]
+output = "docs/generated/skills-catalog.md"
+families = [
+    "lifecycle",
+    "ideation",
+    "planning-execution",
+    "architecture-contracts",
+    "quality-testing-debugging",
+    "documentation-memory",
+    "git-delivery",
+    "research",
+    "specialist",
+    "legacy",
+]
+profiles = ["core", "python-ml", "frontend", "company-context", "legacy"]
+# Prose routing rules rendered into every adapter file. Backticked names must
+# be live skills (tests/routing enforces it).
+routing_rules = [
+    "Bounded, scoped change (a flag, a timeout, one function) → `brainstorm_quick` when options are unclear, otherwise straight to `plan_and_execute_feature`. New subsystem, significant design impact, or ambiguous architecture → `brainstorming` (written spec, user approval), then `writing-plans`.",
+    "An approved plan or an already-scoped fix → `plan_and_execute_feature` with `mode: execute_only`; do not reopen design.",
+    "A failing test, traceback, or unexpected behavior → `systematic_debugging` before any edit; `test-driven-development` for the regression test.",
+    "Before declaring anything done → `verify_changes`. For a review of the finished diff → `requesting-code-review`.",
+    "Skip a skill only when the user asks for a tiny edit; say which skill was skipped and why.",
+]
+small_model_note = "Follow `LOCAL_AGENT.md`: one root cause or one increment per turn, one or few files per step, edit never rewrite, declare `Target file / Expected change / Validation` before editing, run the validation command, then stop. Drive the work with `plan_and_execute_feature` in `mode: local_model_32k`."
+
+# --- I want to… → skill (human routing table; also drives the adapter block)
+
+[[intent]]
+want = "start a project from this template"
+skill = "bootstrap_project"
+
+[[intent]]
+want = "explore a scoped idea or compare options"
+skill = "brainstorm_quick"
+note = "no spec, no approval gate"
+
+[[intent]]
+want = "design a new subsystem or a design-impacting change"
+skill = "brainstorming"
+note = "written spec + user approval before code"
+
+[[intent]]
+want = "implement a feature or an approved plan"
+skill = "plan_and_execute_feature"
+note = "`mode: execute_only` when the plan already exists"
+
+[[intent]]
+want = "fix a failing test, traceback or wrong behavior"
+skill = "systematic_debugging"
+
+[[intent]]
+want = "plan a code, data or architecture migration"
+skill = "generate_migration_plan"
+
+[[intent]]
+want = "check current facts (versions, APIs, releases)"
+skill = "research_current_info"
+
+[[intent]]
+want = "verify the work before calling it done"
+skill = "verify_changes"
+
+[[intent]]
+want = "review the finished diff"
+skill = "requesting-code-review"
+
+# --- Overlays for vendored skills (source stays untouched) --------------------
+
+[skill.brainstorming]
+family = "ideation"
+visibility = "developer"
+profile = "core"
+risk = "writes-files"
+# Replaces the vendor trigger ("You MUST use this before ANY creative work"),
+# which neutralised `brainstorm_quick`. The projected SKILL.md carries this
+# description; the vendor file keeps its own.
+description = "Use for design-impacting work: a new subsystem, a significant architecture or behavior change, or requirements that are still ambiguous. Produces a written spec the user approves before any code. For a bounded, scoped change use `brainstorm_quick` (or go straight to `plan_and_execute_feature`)."
+summary = "Design gate for a new subsystem or design-impacting change: written spec, user approval, then `writing-plans`"
+triggers = [
+    "new subsystem", "design a new", "design the architecture", "significant design",
+    "architecture is unclear", "ambiguous requirements", "design spec",
+    "greenfield", "multi-tenant", "from scratch", "new platform", "new service",
+]
+
+[skill.executing-plans]
+family = "planning-execution"
+visibility = "internal"
+profile = "core"
+summary = "Execute a written plan in a separate session with review checkpoints (no subagents)"
+triggers = ["execute the written plan", "separate session", "docs/superpowers/plans"]
+
+[skill.finishing-a-development-branch]
+family = "git-delivery"
+visibility = "internal"
+profile = "core"
+risk = "git-mutating"
+summary = "Close a finished branch: verify tests, then present merge / PR / keep / discard options to the user"
+triggers = [
+    "finish the branch", "merge or pr", "open a pull request", "create a pr",
+    "done with the branch", "integrate the work", "ready to merge",
+]
+
+[skill.requesting-code-review]
+family = "quality-testing-debugging"
+visibility = "developer"
+profile = "core"
+risk = "read-only"
+summary = "Dispatch a reviewer with precise context to review the finished diff before merging"
+triggers = [
+    "code review", "review my changes", "review the diff", "review this pr",
+    "request review", "second pair of eyes", "before merging",
+]
+
+[skill.subagent-driven-development]
+family = "planning-execution"
+visibility = "internal"
+profile = "core"
+summary = "Execute a plan with one fresh subagent per task and a two-stage review (spec, then quality)"
+triggers = ["subagent", "subagents", "parallel tasks", "dispatch", "independent tasks"]
+
+[skill.test-driven-development]
+family = "quality-testing-debugging"
+visibility = "internal"
+profile = "core"
+summary = "Write the failing test first, watch it fail, then the minimal code to pass"
+triggers = ["tdd", "test first", "write the test first", "failing test first", "red green refactor", "regression test"]
+
+[skill.ui-ux-pro-max]
+family = "specialist"
+visibility = "optional"
+profile = "frontend"
+summary = "Any UI/UX request — landing pages, dashboards, components, CSS/Tailwind/React styling, palettes, typography, accessibility"
+triggers = [
+    "ui", "ux", "landing page", "dashboard design", "css", "tailwind",
+    "react component", "color palette", "typography", "design system", "responsive layout",
+]
+
+[skill.using-git-worktrees]
+family = "git-delivery"
+visibility = "internal"
+profile = "core"
+risk = "git-mutating"
+summary = "Work in an isolated worktree: prefer the platform's native tool, fall back to git worktree"
+triggers = ["worktree", "isolated workspace", "separate checkout", "isolate the branch"]
+
+[skill.writing-clearly-and-concisely]
+family = "documentation-memory"
+visibility = "optional"
+profile = "core"
+summary = "Apply Strunk's rules to prose humans will read: docs, messages, reports, UI text"
+triggers = ["rewrite this prose", "clearer wording", "make it concise", "tighten the writing", "commit message wording", "documentation prose"]
+
+[skill.writing-plans]
+family = "planning-execution"
+visibility = "internal"
+profile = "core"
+summary = "Turn an approved spec into a bite-sized implementation plan with exact files, code and checks"
+triggers = ["write the implementation plan", "implementation plan from the spec", "detailed plan", "bite-sized tasks", "plan document"]
+
+# --- Legacy names ---------------------------------------------------------------
+# Retired skill names that still resolve. Not projected anywhere; every adapter
+# maps them to the replacement so an old prompt or downstream project keeps
+# working without a duplicate skill competing in discovery.
+
+[alias.source-command-verify]
+replacement = "verify_changes"
+note = "First-party mirror of the `/verify` command; superseded by the governed skill."
+
+[alias.source-command-retro]
+replacement = "retrospective"
+note = "First-party mirror of the `/retro` command; superseded by the governed skill."
+
+[alias.execute_engineering_task]
+replacement = "plan_and_execute_feature"
+note = "Use `mode: execute_only`."
+
+[alias.create_use_case]
+replacement = "create_domain_contract"
+note = "Use `contract_type: use_case`."
+
+[alias.create_repository_interface]
+replacement = "create_domain_contract"
+note = "Use `contract_type: repository`."
+
+# --- Policies projected over skills --------------------------------------------
+# A policy is rendered into every adapter file and, for the skills in
+# `applies_to`, into the projected SKILL.md ahead of the (unmodified) vendor
+# body. tests/skills_sync/test_policies.py fails if a vendored skill instructs a
+# mutating git action without being listed here.
+
+[policy.git-actions]
+title = "Git actions are recommendations"
+summary = "Agents may recommend git actions and prepare commands, diffs, commit messages and PR text. They MUST NOT run `git commit`, `git push`, merge, rebase, or delete branches unless the user explicitly asks for that exact action in the current session; where a skill step says commit/push/merge, hand the prepared command to the user instead."
+doc = ".github/standards.md"
+applies_to = [
+    "brainstorming",
+    "executing-plans",
+    "finishing-a-development-branch",
+    "subagent-driven-development",
+    "using-git-worktrees",
+    "writing-plans",
+]
+
 # --- External skill provenance ------------------------------------------------
 # Redistribution record for every vendored skill under `.github/skills-external/`.
 # `make sync-skills` copies these fields into `skills-lock.json`; the human-readable
@@ -152,16 +377,3 @@ license = "MIT"
 [external_skill.writing-clearly-and-concisely]
 upstream = "https://github.com/obra/the-elements-of-style"
 license = "Public Domain"
-
-# First-party: generated from this repository's own slash commands, not vendored.
-# They sit under skills-external/ for historical reasons: internal skills were
-# once restricted to flat files, so a skill with helper files had nowhere else to
-# go. That restriction is gone (internal skills may be folders), so these could
-# move to .github/skills/ whenever the churn is worth it.
-[external_skill.source-command-retro]
-upstream = "first-party"
-license = "Apache-2.0"
-
-[external_skill.source-command-verify]
-upstream = "first-party"
-license = "Apache-2.0"

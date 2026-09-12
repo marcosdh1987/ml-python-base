@@ -1,5 +1,10 @@
 # Skills Management
 
+Engine reference for the skills system. The developer-facing explanation (what a
+skill is, how to pick one, how to add or retire one) is
+[`docs/skills-guide.md`](skills-guide.md); the generated inventory is
+[`docs/generated/skills-catalog.md`](generated/skills-catalog.md).
+
 ## Engine overview
 
 Skill/adapter/agent projection is handled by a single declarative engine —
@@ -14,33 +19,153 @@ needed. The Makefile targets are thin wrappers:
 | `make setup-opencode-skills` | `link --tool opencode` | Symlink native OpenCode skills |
 | `make setup-antigravity-skills` | `link --tool antigravity` | Copy native Antigravity skills + manifest |
 | `make render-adapters` | `render` | Regenerate the managed skill region in each adapter |
+| `make render-catalog` | `catalog` | Regenerate `docs/generated/skills-catalog.md` |
 | `make sync-agents` | `agents` | Project governed agents into native formats |
-| `make sync-skills` | `sync` | ingest + link + agents + render (one-shot) |
+| `make sync-skills` | `sync` | ingest + link + agents + render + catalog (one-shot) |
 | `make check-sync` | `check` | Fail if any generated artifact is stale (CI gate) |
+| `make route PROMPT=…` | `route` | Route one request through the catalog (deterministic) |
+| `make routing-eval` | — (pytest) | Deterministic routing scenarios, `tests/routing/` |
+| `make routing-eval-live` | — (script) | Opt-in live routing eval against a real model |
 | `make purge-external-skills` | `purge` | Reset external skills + native views |
 
-This project supports two skill sources:
+Two skill sources:
 
-- Internal/governed skills: `.github/skills/`
-- External ad-hoc skills (installed by CLI tools): `.agents/skills/` (fallback: `.agent/skills/`)
+- Internal/governed skills: `.github/skills/` (flat `<name>.md` or `<name>/SKILL.md`
+  bundle — see "Internal skill shapes").
+- External vendored skills: `.github/skills-external/<name>/` (always bundles),
+  ingested from ad-hoc installs under `.agents/skills/` (fallback `.agent/skills/`).
 
-Claude Code uses a generated native adapter layout for internal and synced external skills:
+Native views are generated per tool: `.claude/skills/`, `.opencode/skills/`,
+`.codex/skills/` (symlinks) and `.agents/skills/` (copies + hidden manifest).
+Governed folders remain the source of truth.
 
-- `.claude/skills/<skill-name>/SKILL.md`
+## Catalog metadata
 
-Antigravity uses a generated native workspace layout for the same governed skills:
+Every skill carries catalog metadata. Internal skills declare it in their own
+frontmatter; vendored skills, which cannot be edited, get it from a
+`[skill.<name>]` overlay in the registry. Precedence per field: **overlay >
+frontmatter > default**. Every field has a default, so a skill without metadata
+still projects as an `internal` primitive of family `unclassified`.
 
-- `.agents/skills/<skill-name>/SKILL.md`
-- `.agents/rules/GEMINI.md`
+| Key | Values | Default | Meaning |
+|---|---|---|---|
+| `family` | one of `[catalog].families` (or `unclassified`) | `unclassified` | what the skill is about |
+| `visibility` | `developer` · `internal` · `optional` · `hidden` · `legacy` | `internal` | who it is for and whether it competes in discovery |
+| `profile` | one of `[catalog].profiles` | `core` | which kind of project needs it |
+| `auto_trigger` | bool | `true` | the model may select it from its description alone |
+| `maturity` | `stable` · `experimental` · `deprecated` | `stable` | `deprecated` requires `visibility: legacy` |
+| `risk` | `read-only` · `writes-files` · `git-mutating` · `network` | `writes-files` | side-effect class |
+| `small_model_path` | bool | `false` | the skill documents a small-context mode; named in the adapters' small-model line |
+| `triggers` | list of phrases | `[]` | matched by the deterministic router and shown in the catalog |
+| `replacement` | skill name | `""` | required for `legacy` |
+| `summary` | ≤ 140 chars | first sentence of `description` | the one-liner adapters show |
+| `description` | overlay only | — | replaces the vendor trigger in the projected `SKILL.md` |
 
-Generate it from governed skills with:
+Visibility drives projection:
 
-```bash
-make setup-claude-skills
-make setup-antigravity-skills
+| Visibility | Adapter block | Native view |
+|---|---|---|
+| `developer` | intent line at the top | projected |
+| `internal` | compact primitives list | projected |
+| `optional` | specialist list, tagged with its profile | projected |
+| `hidden` | not listed | projected (usable when named) |
+| `legacy` | `old → replacement` line only | **not projected**; stale native entries are removed |
+
+`[catalog]` also declares `output` (the generated catalog path), `routing_rules`
+(prose bullets rendered into every adapter; backticked names must be live skills)
+and `small_model_note` (the small-model line). `[[intent]]` entries feed the
+"I want to… → skill" table; each must point at a `developer` skill.
+
+Validation runs on every `sync`, `link`, `render`, `catalog` and `check`:
+invalid vocabulary, a `legacy` skill without a live replacement, an alias that
+collides with a live skill or an intent that points at a hidden skill are hard
+errors. References to skills that are simply absent from the tree (an overlay or
+policy for a purged external skill) are warnings, so a downstream repository that
+carries a subset of the catalog still syncs. `tests/skills_sync/test_catalog.py`
+asserts the committed repository has neither.
+
+## Overlays and policies
+
+A vendored skill is projected verbatim **unless** a registry overlay overrides its
+`description` or a policy applies to it. Then the projected `SKILL.md` (in every
+native view, symlink and copy alike) is a generated file:
+
+```
+---
+name: brainstorming
+description: "<governed description>"
+---
+
+> **Governed overlay — read first.** Projected by `skills_sync` from
+> `.github/skills-external/brainstorming/SKILL.md` (vendored, unmodified).
+> Repository policy takes precedence over any step below that contradicts it:
+> - **Git actions are recommendations:** …
+> - **Routing:** use this skill only when its governed trigger applies — …
+
+<vendor body, byte-for-byte>
 ```
 
-The generated Claude files are symlinks back into `.github/skills/` and `.github/skills-external/<skill-name>/`. The generated Antigravity files are copied into `.agents/skills/` together with a hidden manifest used to distinguish governed output from newly installed ad-hoc skills. Governed folders remain the source of truth.
+Other files of the bundle stay symlinked/copied. The vendor source, its hash in
+`skills-lock.json` and its `NOTICE` entry do not change — the overlay is a
+projection, not a fork. `make check-sync` compares each generated `SKILL.md`
+(symlink tools) or the folder hash (Antigravity) against what the engine would
+produce.
+
+Policies are declared once:
+
+```toml
+[policy.git-actions]
+title = "Git actions are recommendations"
+summary = "Agents may recommend git actions … MUST NOT run `git commit`, `git push`, merge … unless the user explicitly asks …"
+doc = ".github/standards.md"
+applies_to = ["brainstorming", "executing-plans", "finishing-a-development-branch",
+              "subagent-driven-development", "using-git-worktrees", "writing-plans"]
+```
+
+and rendered into every adapter's **Policies** section. `tests/skills_sync/test_policies.py`
+fails when a vendored skill instructs a mutating git action (`git commit`,
+`git push`, `git merge`, `gh pr create`, …) without being in `applies_to`, when a
+covered skill's projected file lacks the banner, when an adapter lacks the policy,
+and when `.claude/settings.json` does not ask before those commands.
+
+## Legacy names
+
+Retired names resolve without a duplicate skill competing in discovery:
+
+- a skill kept on disk with `visibility: legacy` + `replacement`, or
+- a deleted skill with an `[alias.<name>] replacement = "…"` entry.
+
+Both render in the adapters' **Legacy names** line and in the catalog's "Legacy
+names" table. `catalog.resolve_name()` follows chains; the router treats a legacy
+name in a prompt as an explicit request for the replacement.
+
+## Generated catalog
+
+`make sync-skills` writes `docs/generated/skills-catalog.md` from
+`adapters/templates/skills_catalog.md.j2`: the intent table, entrypoints,
+primitives, optional, hidden, legacy names, routing rules, policies, the
+small-model path, families, profiles, a full attribute table and the trigger
+phrases. It is deterministic (no timestamps) and `make check-sync` fails when it
+is stale, so README and wiki pages link to it instead of repeating lists.
+
+## Routing evals
+
+`tests/routing/scenarios.toml` holds versioned scenarios (`prompt`,
+`expected_family`, `expected_skills`, `forbidden_skills`, optional `expected_mode`,
+`reason`, tags). `tests/routing/test_routing.py` runs them through
+`skills_sync.routing.route()` — a deterministic router that scores each skill's
+`triggers` against the prompt, resolves legacy names, detects `execute_only` /
+`local_model_32k` from phrase patterns and breaks ties by visibility rank — and
+guards structural invariants: every entrypoint is exercised, every legacy name
+resolves, routing rules name only live skills, small-model scenarios land on
+skills with a small-model path, and the developer catalog is materially smaller
+than the discoverable set. They run inside `make check`.
+
+`scripts/routing_eval.py --live` (`make routing-eval-live`) asks a real model
+(`claude -p` or `opencode run`) the same questions given only the adapter block,
+and prints pass/fail per scenario. It is opt-in: it costs tokens and is not
+deterministic. `--adapter` accepts any adapter file, including a saved older one,
+for before/after comparisons.
 
 ## Internal skill shapes
 
@@ -53,108 +178,50 @@ A skill is either only prose, or prose plus the files it runs. Both shapes live 
 | Prose plus scripts, templates or references | `.github/skills/<name>/SKILL.md` with the helpers beside it | `True` |
 
 The skill **name** comes from the file stem or the folder name, never from the
-frontmatter. A folder without `SKILL.md` is not a skill and is skipped silently, so
-supporting directories cannot be mistaken for one. Internal and external skills are
-ordered independently of shape — internal skills sort by name, then external ones.
+frontmatter. A folder without `SKILL.md` is not a skill and is skipped silently.
+Internal skills sort by name, then external ones.
 
-Shape and provenance are independent axes. External skills
-(`.github/skills-external/`) are always bundles because that is how vendors ship
-them; internal skills choose. Code that cares about the on-disk layout must branch on
-`Skill.is_bundle`, never on `Skill.kind` — an internal bundle projects exactly like an
-external one.
+Projection covers both shapes: symlink tools (Claude Code, OpenCode, Codex) get
+`SKILL.md` linked for a flat skill and one link per top-level entry for a bundle;
+the copy tool (Antigravity) copies the tree with `shutil.copy2`, preserving the
+executable bit. When a skill invokes a bundled script, point the agent at the
+**governed** path (`.github/skills/<name>/<script>`), never at a native copy.
 
-Projection covers both shapes:
+## Ideation routing: `brainstorm_quick` vs `brainstorming`
 
-- **Symlink tools** (Claude Code, OpenCode, Codex) get `SKILL.md` linked for a flat
-  skill, and one link per top-level entry for a bundle.
-- **The copy tool** (Antigravity) copies the tree with `shutil.copy2`, preserving the
-  executable bit, so a bundled `.sh` stays runnable in the projected view. Folder
-  digests hash content only, so file modes never move a manifest hash.
-
-When a skill invokes a bundled script, point the agent at the **governed** path
-(`.github/skills/<name>/<script>`), never at a native copy — native views are torn
-down and rebuilt on every `make sync-skills`.
-
-Default internal skills bundled by template:
-
-- `bootstrap_project`
-- `brainstorm_quick`
-- `create_domain_contract`
-- `create_mle_agent_package`
-- `generate_e2e_tests`
-- `generate_implementation_docs`
-- `refactor_to_clean_architecture`
-- `validate_module_structure`
-- `generate_migration_plan`
-- `plan_and_execute_feature`
-- `research_current_info`
-
-## Ideation routing: `brainstorm_quick` vs external `brainstorming`
-
-Two ideation skills coexist on purpose. Route between them explicitly:
+Two ideation skills coexist on purpose:
 
 | Situation | Skill | Why |
 |---|---|---|
-| Scoped feature, quick exploration, no formal spec needed | `brainstorm_quick` (internal) | Lightweight: diverge → weigh → converge → hand off to `plan_and_execute_feature`. Nothing persisted. |
-| New feature, creative work, or design-impacting change | `brainstorming` (external) | Hard design gate: written spec under `docs/`, explicit user approval, then hand off to `writing-plans`. |
+| Scoped feature, bounded change, quick option comparison | `brainstorm_quick` (internal) | Diverge → weigh → converge → hand off to `plan_and_execute_feature`. Nothing persisted, no gate. |
+| New subsystem, significant design impact, ambiguous architecture | `brainstorming` (external) | Written spec under `docs/`, explicit user approval, then `writing-plans`. |
 
-Start with `brainstorm_quick` when unsure and escalate to `brainstorming` if
-design-impacting decisions emerge. The routing criteria also live in the
-`brainstorm_quick` skill itself ("When to use which ideation skill") so every AI
-tool sees them natively.
-
-Caveats of the external `brainstorming` skill (do **not** edit it in
-`.github/skills-external/` — changes are overwritten on the next sync):
-
-- Its optional **visual companion** runs a local Node.js server
-  (`scripts/` inside the skill). Node.js is not a repo dependency; the skill
-  falls back to text-only brainstorming when it is unavailable or declined.
-- It references sibling skills with the `superpowers:` namespace prefix
-  (e.g. `superpowers:writing-plans`). Not every tool resolves that prefix —
-  the same skills are available here without the prefix (`writing-plans`,
-  `executing-plans`, etc.).
+The vendor's trigger ("you MUST use this before ANY creative work") is replaced in
+projection by the governed description declared in `[skill.brainstorming]`, and
+the same rule is one of the `routing_rules` every adapter renders. Caveats of the
+vendored skill: its optional visual companion needs Node.js (text fallback
+exists), and it references siblings with the `superpowers:` prefix — the same
+skills are available here without it.
 
 ## Sync external skills to governed layout
 
-Use:
-
 ```bash
+npx skills add https://github.com/wshobson/agents --skill langchain-architecture
 make sync-skills
 ```
 
-Example external install before sync:
-
-```bash
-npx skills add https://github.com/wshobson/agents --skill langchain-architecture
-```
-
-What it does:
-
-1. Detects external source in this order:
-   - `.agents/skills/`
-   - `.agent/skills/`
-2. Copies each valid skill directory (`SKILL.md` plus any supporting files) to:
-   - `.github/skills-external/<skill-name>/`
-3. Skips invalid folders without `SKILL.md`
-4. Keeps existing `.github/skills-external/` entries unless explicitly purged
-5. Regenerates a governed `skills-lock.json` from synced skills (hash + timestamp)
-6. Cleans installer artifacts after sync:
-   - removes `.agent/skills/`
-7. Refreshes `.claude/skills/`, `.opencode/skills/`, and `.agents/skills/` so Claude
-   Code, OpenCode, and Antigravity discover internal and external skills natively
-8. Regenerates the managed skill region inside every adapter file (`CLAUDE.md`,
-   `OPENCODE.md`, `AGENTS.md`, `.github/copilot-instructions.md`,
-   `.agents/rules/GEMINI.md`) so the skill lists never drift
-9. Projects governed agents (`.github/agents/`) into `.claude/agents/` (markdown),
-   `.opencode/agents/` (markdown + `permission` map), and `.codex/agents/` (TOML)
+`sync` (1) ingests `.agents/skills/` (fallback `.agent/skills/`) into
+`.github/skills-external/<name>/`, skipping folders without `SKILL.md` and copies
+that match the Antigravity manifest; (2) regenerates `skills-lock.json` (hash,
+timestamp, upstream, licence); (3) removes the legacy `.agent/skills/`; (4) rebuilds
+every native view, applying visibility and overlays; (5) projects governed agents;
+(6) regenerates the adapter regions; (7) regenerates the catalog document.
 
 ## Provenance of vendored skills
 
 Everything under `.github/skills-external/` is third-party content this repository
-**redistributes**. Public availability is not a licence, so every vendored skill must
-declare where it came from and under what terms.
-
-The declaration lives in the `[external_skill]` table of `adapters/registry.toml`:
+**redistributes**. Every vendored skill must declare where it came from and under
+what terms in the `[external_skill]` table of `adapters/registry.toml`:
 
 ```toml
 [external_skill.brainstorming]
@@ -162,35 +229,12 @@ upstream = "https://github.com/obra/superpowers"
 license = "MIT"
 ```
 
-`make sync-skills` copies those two fields into each entry of `skills-lock.json`, so
-the lockfile is the machine-readable redistribution record:
-
-```json
-"brainstorming": {
-  "source": "synced-local",
-  "sourceType": "directory",
-  "upstream": "https://github.com/obra/superpowers",
-  "license": "MIT",
-  ...
-}
-```
-
-A skill with no registry entry renders as `"upstream": "UNKNOWN"` and
-`"license": "UNKNOWN"`. That is deliberate — an unestablished origin must be visible
-rather than silently omitted — and `make check` fails on it, because
-`tests/skills_sync/test_config.py` asserts that no vendored skill is UNKNOWN.
-
-When you add an external skill:
-
-1. Find its upstream repository and its licence. Verify the actual `LICENSE` file;
-   do not trust a README badge or a search result.
-2. Add an `[external_skill.<name>]` entry to `adapters/registry.toml`.
-3. Add the attribution (and the full licence text, for MIT/BSD-style licences) to the
-   root `NOTICE` file, which Apache-2.0 §4 requires us to carry.
-4. Run `make sync-skills`, then `make check`.
-
-If you cannot establish the licence, do not vendor the skill. Use
-`make purge-external-skills` to reset.
+`make sync-skills` copies those fields into each `skills-lock.json` entry. A skill
+with no registry entry renders as `"UNKNOWN"` and `make check` fails
+(`tests/skills_sync/test_config.py`). When you add an external skill: verify the
+actual `LICENSE`, add the registry entry, add attribution to `NOTICE`, add a
+`[skill.<name>]` overlay for its catalog metadata, run `make sync-skills` and
+`make check`. If you cannot establish the licence, do not vendor the skill.
 
 ## Adapter skill regions and the drift gate
 
@@ -198,45 +242,35 @@ Each adapter file carries a machine-managed block between sentinels:
 
 ```
 <!-- BEGIN GENERATED SKILLS (managed by skills_sync; do not edit) -->
-...generated skill list...
+...generated block...
 <!-- END GENERATED SKILLS -->
 ```
 
 Only that block is generated; the surrounding governance prose stays hand-written.
-`make check-sync` (run in CI) fails if any adapter region, native view, manifest,
-lock file, or projected agent is stale relative to the governed sources — so the
-lists can never silently drift. Fix drift with `make sync-skills`.
+`make check-sync` fails if any adapter region, native view (generated overlay file
+or a stale legacy entry), manifest, lock file, projected agent or the generated
+catalog is stale relative to the governed sources. Fix drift with
+`make sync-skills`.
+
+Adapter templates are a governance path but the engine is a platform path. A
+template that references new catalog variables therefore needs the matching
+engine, which is why `[template_sync].protocol` is `2` for catalog v3: a
+downstream repository (or the harness lab) must adopt the platform upgrade before
+syncing protocol-2 governance, and its `harness-sync-preview` blocks until it does.
 
 ## Safety behavior
 
-- If no external source exists, command exits successfully (`0`) without failing CI.
-- If source exists but has no skill folders, command exits successfully.
-- If a skill folder is malformed, it is skipped and reported.
+- No external source → exit `0` without failing CI; a source with no skill folders
+  → exit `0`; a malformed folder → skipped and reported.
 - `skills-lock.json` is always refreshed from `.github/skills-external/`.
-- Generated Antigravity skills are skipped on re-sync by comparing against `.agents/skills/.generated-manifest.tsv`.
-- Cleanup only removes legacy `.agent/skills/`; `.agents/skills/` is now preserved as native Antigravity output.
-
-## Recommended workflow
-
-1. Keep internal curated skills in `.github/skills/`.
-2. Run `make setup-claude-skills` after internal skill changes so Claude Code can discover them natively.
-3. Run `make setup-antigravity-skills` after internal skill changes so Antigravity can discover them natively.
-4. Install/update external skills via your CLI tool (for example `npx skills ...`).
-5. Run `make sync-skills` to normalize external vendor skills into `.github/skills-external/` and refresh both `.claude/skills/` and `.agents/skills/`.
+- Generated Antigravity skills are skipped on re-sync by comparing against
+  `.agents/skills/.generated-manifest.tsv`.
+- Catalog references to absent skills are warnings, not errors, so
+  `make purge-external-skills` still resets cleanly.
 
 ## Purge external skills (reset template)
 
-Use:
-
-```bash
-make purge-external-skills
-```
-
-What it does:
-
-1. Removes all synced external skills from `.github/skills-external/`
-2. Removes temporary legacy installer folders (`.agent/skills/`) and resets generated `.agents/skills/`
-3. Removes governed lock metadata (`skills-lock.json`)
-4. Recreates `.github/skills-external/` as an empty folder
-5. Refreshes `.claude/skills/` so external native links are removed
-6. Refreshes `.agents/skills/` so only governed internal skills remain available to Antigravity
+`make purge-external-skills` removes `.github/skills-external/`, the legacy
+installer folders and `skills-lock.json`, recreates the empty external folder and
+rebuilds every native view, adapter region and the catalog with internal skills
+only.

@@ -1,6 +1,22 @@
 ---
 name: refactor_to_clean_architecture
 description: Use when refactoring modules to align dependency direction, responsibilities, and boundaries with clean architecture.
+summary: Realign a module's dependency direction and boundaries, behavior preserved
+family: architecture-contracts
+visibility: internal
+profile: core
+auto_trigger: true
+maturity: stable
+risk: writes-files
+small_model_path: false
+triggers:
+  - refactor
+  - clean architecture
+  - dependency direction
+  - boundary violation
+  - layer leak
+  - decouple
+  - move logic out of
 ---
 
 # Skill: refactor_to_clean_architecture

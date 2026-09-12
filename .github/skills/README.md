@@ -1,16 +1,41 @@
-# Skills Catalog
+# Skills (governed source)
 
-Operational skills must receive explicit input and return structured output.
+Operational skills receive explicit input and return structured output. This folder
+is the source of truth for **internal** skills; vendored skills live in
+`.github/skills-external/`. The generated inventory is
+`docs/generated/skills-catalog.md`; the guide is `docs/skills-guide.md`.
 
-Every skill must include YAML frontmatter with:
+## Frontmatter
 
-- `name`: the skill name, matching the file or folder name
-- `description`: semantic trigger description for native skill discovery
+Every skill starts with YAML frontmatter. `name` and `description` are required;
+the rest is catalog metadata with safe defaults (see `docs/skills-management.md`
+for values and semantics):
+
+```yaml
+---
+name: verify_changes                      # matches the file stem or folder name
+description: Use before considering work done — …   # the trigger the model reads
+summary: Run the read-only gate and report pass/fail honestly   # ≤ 140 chars, adapters show this
+family: quality-testing-debugging         # one of [catalog].families in adapters/registry.toml
+visibility: developer                     # developer | internal | optional | hidden | legacy
+profile: core                             # core | python-ml | frontend | company-context | legacy
+auto_trigger: true
+maturity: stable                          # stable | experimental | deprecated
+risk: read-only                           # read-only | writes-files | git-mutating | network
+small_model_path: true                    # documents a small-context mode
+triggers:                                 # phrases for the deterministic router
+  - verify
+  - run the checks
+---
+```
+
+Vendored skills cannot carry this block; declare theirs as `[skill.<name>]` in
+`adapters/registry.toml` (the overlay wins over frontmatter field by field).
 
 ## Skill shapes
 
 A skill is either only prose, or prose plus the files it runs. Both shapes live
-in `.github/skills/`; the shape decides the layout.
+here; the shape decides the layout.
 
 | The skill is… | It goes in |
 |---|---|
@@ -29,57 +54,25 @@ Point agents at the **governed** path of a bundled script
 (`.github/skills/<name>/<script>`), never at a native copy. Native views are
 rebuilt on every sync.
 
-## Skill Sources
+## Sources and projections
 
 - Internal curated skills: `.github/skills/` (either shape)
-- External synced skills: `.github/skills-external/` (always folders)
-- Claude Code native generated links: `.claude/skills/`
-- Antigravity native generated copies: `.agents/skills/`
-- OpenCode native generated links: `.opencode/skills/`
+- External vendored skills: `.github/skills-external/` (always folders)
+- Generated native views: `.claude/skills/`, `.codex/skills/`, `.opencode/skills/`
+  (symlinks; overlaid skills get a generated `SKILL.md`), `.agents/skills/` (copies)
 
-Precedence rule:
+If a skill exists in both sources, the internal one wins. `legacy` skills are not
+projected at all; adapters map their name to the replacement.
 
-- If a skill exists in both places, prefer `.github/skills/`.
-
-Refresh all native adapter views after internal or external skill changes:
+Refresh every projection after a change:
 
 ```bash
-make sync-skills
+make sync-skills     # then `make check-sync` to verify, `make check` to run the routing evals
 ```
 
-Or refresh individually:
+## Governance dependency
 
-```bash
-make setup-claude-skills
-make setup-antigravity-skills
-make setup-opencode-skills
-```
-
-## Available Skills
-
-- `bootstrap_project`
-- `brainstorm_quick`
-- `create_domain_contract`
-- `create_mle_agent_package`
-- `generate_e2e_tests`
-- `generate_implementation_docs`
-- `refactor_to_clean_architecture`
-- `validate_module_structure`
-- `generate_migration_plan`
-- `plan_and_execute_feature`
-- `research_current_info`
-- `systematic_debugging`
-- `retrospective`
-- `verify_changes`
-
-## Governance Dependency
-
-All skills must comply with:
-
-- `.github/architecture.md`
-- `.github/standards.md`
-- `.github/domain-boundaries.md`
-
-For complex tasks, also comply with:
-
-- `.github/orchestration.md`
+All skills must comply with `.github/architecture.md`, `.github/standards.md` and
+`.github/domain-boundaries.md`; complex tasks also with `.github/orchestration.md`.
+Vendored skills whose steps contradict repository policy (for example, running
+`git commit`) are projected under the `git-actions` policy declared in the registry.

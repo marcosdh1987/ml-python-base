@@ -1,6 +1,24 @@
 ---
 name: research_current_info
 description: Use when the user asks for up-to-date or current information, to confirm something is still accurate, or when a task depends on facts that may have changed since training (library versions, APIs, pricing, releases, news, current best practices). Runs a governed web search with a curated domain allow/deny policy and cited, recency-checked results.
+summary: Governed web search for facts that may have changed (versions, APIs, releases), cited and dated
+family: research
+visibility: developer
+profile: core
+auto_trigger: true
+maturity: stable
+risk: network
+small_model_path: false
+triggers:
+  - latest version
+  - current version
+  - is this still
+  - has this changed
+  - up-to-date
+  - what is the latest
+  - release notes
+  - pricing
+  - recent news
 ---
 
 # Skill: research_current_info

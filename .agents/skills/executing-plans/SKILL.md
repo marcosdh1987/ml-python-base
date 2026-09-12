@@ -1,7 +1,10 @@
 ---
 name: executing-plans
-description: Use when you have a written implementation plan to execute in a separate session with review checkpoints
+description: "Use when you have a written implementation plan to execute in a separate session with review checkpoints"
 ---
+
+> **Governed overlay — read first.** Projected by `skills_sync` from `.github/skills-external/executing-plans/SKILL.md` (vendored, unmodified). Repository policy takes precedence over any step below that contradicts it:
+> - **Git actions are recommendations:** Agents may recommend git actions and prepare commands, diffs, commit messages and PR text. They MUST NOT run `git commit`, `git push`, merge, rebase, or delete branches unless the user explicitly asks for that exact action in the current session; where a skill step says commit/push/merge, hand the prepared command to the user instead.
 
 # Executing Plans
 

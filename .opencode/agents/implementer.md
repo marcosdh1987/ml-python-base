@@ -2,7 +2,15 @@
 description: Use to implement an approved, scoped plan with clean-architecture boundaries and English-only code artifacts.
 mode: subagent
 permission:
-  bash: allow
+  bash:
+    "*": allow
+    "git commit*": ask
+    "git push*": ask
+    "git merge*": ask
+    "git rebase*": ask
+    "git branch -d*": ask
+    "git branch -D*": ask
+    "gh pr merge*": ask
   edit: allow
   grep: allow
   read: allow

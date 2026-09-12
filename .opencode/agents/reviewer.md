@@ -2,7 +2,15 @@
 description: Use to review a diff for correctness, boundary violations, and governance compliance before finalizing.
 mode: subagent
 permission:
-  bash: allow
+  bash:
+    "*": allow
+    "git commit*": ask
+    "git push*": ask
+    "git merge*": ask
+    "git rebase*": ask
+    "git branch -d*": ask
+    "git branch -D*": ask
+    "gh pr merge*": ask
   edit: deny
   grep: allow
   read: allow

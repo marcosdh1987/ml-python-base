@@ -1,7 +1,11 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+description: "Use for design-impacting work: a new subsystem, a significant architecture or behavior change, or requirements that are still ambiguous. Produces a written spec the user approves before any code. For a bounded, scoped change use `brainstorm_quick` (or go straight to `plan_and_execute_feature`)."
 ---
+
+> **Governed overlay — read first.** Projected by `skills_sync` from `.github/skills-external/brainstorming/SKILL.md` (vendored, unmodified). Repository policy takes precedence over any step below that contradicts it:
+> - **Git actions are recommendations:** Agents may recommend git actions and prepare commands, diffs, commit messages and PR text. They MUST NOT run `git commit`, `git push`, merge, rebase, or delete branches unless the user explicitly asks for that exact action in the current session; where a skill step says commit/push/merge, hand the prepared command to the user instead.
+> - **Routing:** use this skill only when its governed trigger applies — Use for design-impacting work: a new subsystem, a significant architecture or behavior change, or requirements that are still ambiguous. Produces a written spec the user approves before any code. For a bounded, scoped change use `brainstorm_quick` (or go straight to `plan_and_execute_feature`).
 
 # Brainstorming Ideas Into Designs
 

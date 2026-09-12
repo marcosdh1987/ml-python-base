@@ -46,6 +46,9 @@ use case, generate tests, refactor to clean architecture, etc.).
 
 Internal skills take precedence over external skills when both define the same name.
 
+Each skill carries catalog metadata (family, visibility, profile); the generated
+inventory is `docs/generated/skills-catalog.md` and the guide `docs/skills-guide.md`.
+
 ### Level 3 — Automation (system-enforced quality)
 
 CI and local quality gates that replace model-only behavior with hard checks.

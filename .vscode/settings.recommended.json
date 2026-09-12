@@ -1,0 +1,13 @@
+{
+  "//": "Recommended workspace settings for GitHub Copilot agent mode in this repository.",
+  "//git-actions": "Generated-equivalent of the `git-actions` policy (adapters/registry.toml): these commands are never auto-approved, so committing, pushing, merging or deleting a branch always reaches you first. VS Code auto-approves common git commands by default, which is why they are listed explicitly. Copy this file to .vscode/settings.json (workspace settings are gitignored, so the template cannot ship it directly).",
+  "chat.tools.terminal.autoApprove": {
+    "/^git commit\\b/": false,
+    "/^git push\\b/": false,
+    "/^git merge\\b/": false,
+    "/^git rebase\\b/": false,
+    "/^git branch \\-d\\b/": false,
+    "/^git branch \\-D\\b/": false,
+    "/^gh pr merge\\b/": false
+  }
+}

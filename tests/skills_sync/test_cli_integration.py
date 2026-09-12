@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from ml_python_base.skills_sync.cli import main
+from ml_python_base.skills_sync.cli import check_drift, main
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY = REPO_ROOT / "adapters/registry.toml"
@@ -60,3 +60,21 @@ def test_check_reports_drift_exit_code(tmp_path: Path) -> None:
     )
     code = main(["--root", str(tmp_path), "--registry", str(REGISTRY), "check"])
     assert code == 2  # EXIT_DRIFT
+
+
+def test_check_drift_returns_paths_instead_of_printing_them(tmp_path: Path) -> None:
+    """The programmatic half of `check`, for callers that need it as data."""
+    from ml_python_base.skills_sync.config import load_registry
+
+    _seed_governed(tmp_path)
+    registry = load_registry(REGISTRY)
+    main(["--root", str(tmp_path), "--registry", str(REGISTRY), "sync"])
+
+    assert check_drift(tmp_path, registry) == []
+
+    (tmp_path / ".github/skills/alpha.md").write_text(
+        "---\nname: alpha\ndescription: CHANGED\n---\nbody\n", encoding="utf-8"
+    )
+    stale = check_drift(tmp_path, registry)
+    assert stale and all(isinstance(path, str) for path in stale)
+    assert stale == sorted(stale)

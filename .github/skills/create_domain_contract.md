@@ -1,6 +1,21 @@
 ---
 name: create_domain_contract
 description: Use when defining a typed domain contract — an application use case (business flow) or a repository interface (persistence boundary) — with clean architecture boundaries.
+summary: Define a typed use case or repository interface with clean-architecture boundaries
+family: architecture-contracts
+visibility: internal
+profile: core
+auto_trigger: true
+maturity: stable
+risk: writes-files
+small_model_path: false
+triggers:
+  - use case
+  - repository interface
+  - domain contract
+  - persistence boundary
+  - port and adapter
+  - protocol for the repository
 ---
 
 # Skill: create_domain_contract

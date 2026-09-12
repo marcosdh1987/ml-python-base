@@ -1,6 +1,22 @@
 ---
 name: retrospective
 description: Use at the end of a unit of work to capture durable, non-obvious knowledge into project memory (memory/) and flag decisions worth an ADR. Turns one-off discoveries into compounding, persistent context.
+summary: Persist durable, non-obvious learnings into `memory/` and flag ADR-worthy decisions
+family: documentation-memory
+visibility: internal
+profile: core
+auto_trigger: true
+maturity: stable
+risk: writes-files
+small_model_path: false
+triggers:
+  - retrospective
+  - retro
+  - record learnings
+  - memory/learnings
+  - what did we learn
+  - close out the work
+  - lessons learned
 ---
 
 # Skill: retrospective

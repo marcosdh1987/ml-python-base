@@ -8,7 +8,11 @@ from pathlib import Path
 from ml_python_base.skills_sync.errors import RegistryError
 from ml_python_base.skills_sync.models import (
     VALID_LINK_STRATEGIES,
+    Alias,
+    CatalogSpec,
     Governance,
+    Intent,
+    Policy,
     Registry,
     TemplateSyncPolicy,
     ToolSpec,
@@ -32,12 +36,14 @@ def load_registry(path: Path = DEFAULT_REGISTRY_PATH) -> Registry:
     tools = _parse_tools(raw.get("tool", []))
     if not tools:
         raise RegistryError("Registry declares no [[tool]] entries.")
+    catalog = _parse_catalog(raw)
 
     return Registry(
         schema_version=int(raw.get("schema_version", 1)),
         governance=governance,
         tools=tuple(tools),
         template_sync=template_sync,
+        catalog=catalog,
     )
 
 
@@ -155,3 +161,94 @@ def _parse_tool(entry: dict) -> ToolSpec:
         native_agents_dir=str(entry.get("native_agents_dir", "")),
         agent_format=str(entry.get("agent_format", "")),
     )
+
+
+# --- Catalog blocks -----------------------------------------------------------
+
+
+def _parse_catalog(raw: dict) -> CatalogSpec:
+    block = raw.get("catalog", {})
+    if not isinstance(block, dict):
+        raise RegistryError("[catalog] must be a table.")
+    return CatalogSpec(
+        families=_str_tuple(block.get("families", ()), "[catalog].families"),
+        profiles=_str_tuple(block.get("profiles", ()), "[catalog].profiles"),
+        output=str(block.get("output", "")).strip(),
+        routing_rules=_str_tuple(
+            block.get("routing_rules", ()), "[catalog].routing_rules"
+        ),
+        small_model_note=" ".join(str(block.get("small_model_note", "")).split()),
+        overlays=_parse_named_tables(raw.get("skill", {}), "skill"),
+        aliases=_parse_aliases(raw.get("alias", {})),
+        policies=_parse_policies(raw.get("policy", {})),
+        intents=_parse_intents(raw.get("intent", [])),
+    )
+
+
+def _str_tuple(value: object, label: str) -> tuple[str, ...]:
+    if not isinstance(value, list | tuple):
+        raise RegistryError(f"{label} must be a list of strings.")
+    items = tuple(str(item).strip() for item in value)
+    if any(not item for item in items):
+        raise RegistryError(f"{label} contains an empty entry.")
+    if len(items) != len(set(items)):
+        raise RegistryError(f"{label} contains duplicates.")
+    return items
+
+
+def _parse_named_tables(block: object, label: str) -> dict[str, dict]:
+    if not isinstance(block, dict):
+        raise RegistryError(f"[{label}.*] entries must be tables.")
+    tables: dict[str, dict] = {}
+    for name, entry in block.items():
+        if not isinstance(entry, dict):
+            raise RegistryError(f"[{label}.{name}] must be a table.")
+        tables[str(name)] = dict(entry)
+    return tables
+
+
+def _parse_aliases(block: object) -> tuple[Alias, ...]:
+    aliases: list[Alias] = []
+    for name, entry in _parse_named_tables(block, "alias").items():
+        replacement = str(entry.get("replacement", "")).strip()
+        if not replacement:
+            raise RegistryError(f"[alias.{name}] is missing 'replacement'.")
+        aliases.append(
+            Alias(name=name, replacement=replacement, note=str(entry.get("note", "")))
+        )
+    return tuple(sorted(aliases, key=lambda a: a.name))
+
+
+def _parse_policies(block: object) -> tuple[Policy, ...]:
+    policies: list[Policy] = []
+    for policy_id, entry in _parse_named_tables(block, "policy").items():
+        summary = str(entry.get("summary", "")).strip()
+        if not summary:
+            raise RegistryError(f"[policy.{policy_id}] is missing 'summary'.")
+        policies.append(
+            Policy(
+                id=policy_id,
+                title=str(entry.get("title", policy_id)).strip(),
+                summary=" ".join(summary.split()),
+                applies_to=_str_tuple(
+                    entry.get("applies_to", ()), f"[policy.{policy_id}].applies_to"
+                ),
+                doc=str(entry.get("doc", "")).strip(),
+            )
+        )
+    return tuple(sorted(policies, key=lambda p: p.id))
+
+
+def _parse_intents(entries: object) -> tuple[Intent, ...]:
+    if not isinstance(entries, list):
+        raise RegistryError("[[intent]] must be an array of tables.")
+    intents: list[Intent] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise RegistryError("[[intent]] entries must be tables.")
+        want = str(entry.get("want", "")).strip()
+        skill = str(entry.get("skill", "")).strip()
+        if not want or not skill:
+            raise RegistryError("[[intent]] entries need 'want' and 'skill'.")
+        intents.append(Intent(want=want, skill=skill, note=str(entry.get("note", ""))))
+    return tuple(intents)
