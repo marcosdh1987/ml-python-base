@@ -5,6 +5,11 @@ All notable changes to this template are documented here. The format is based on
 [Semantic Versioning](https://semver.org/). Downstream projects adopt a release with
 `make template-sync REF=vX.Y.Z` (see `docs/template-sync.md`).
 
+## [1.0.0]
+
+### Changed
+- Add comprehensive tests for skills synchronization and governance
+
 ## [0.9.0]
 
 ### Changed
